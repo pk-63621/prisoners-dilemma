@@ -1,32 +1,33 @@
-class prisoners_dilemma:
-    def __init__(self, matrix):
-        self.play_matrix = matrix
+#!/usr/bin/env python3
 
-    def get_result(self, prisoner1, prisoner2):
-        try:
-            if prisoner1 not in ["cooperating", "defecting"] or prisoner2 not in ["cooperating", "defecting"]:
-                print("value mismatch {} {}".format(prisoner1, prisoner2))
-                return
-            if prisoner1 is "cooperating" and prisoner2 is "cooperating":
-                return self.play_matrix[0][0]
-            if prisoner1 is "cooperating" and prisoner2 is "defecting":
-                return self.play_matrix[0][1]
-            if prisoner1 is "defecting" and prisoner2 is "cooperating":
-                return self.play_matrix[1][0]
-            if prisoner1 is "defecting" and prisoner2 is "defecting":
-                return self.play_matrix[1][1]
-        except:
-            print("pay matrix must be not correct")
+import random
+import sys
+import traceback
 
+from enum import Enum
+from typing import Callable, Dict, Tuple, List
 
-class prisoner:
-    def __init__(self, name):
+class Action(Enum):
+    DEFECTING  = 'Defecting'
+    COOPERATING = 'Cooperating'
+
+class Strategy:
+    def __init__(self, name, action):
+        self.name: str = name
+        self.action: Callable = action
+
+    def action(self, own_decisions: List[Action], opponent_decisions: List[Action]) -> Action:
+        return self.action(own_decisions, opponent_decisions)
+
+class Prisoner:
+    def __init__(self, name: str, strategy: Strategy):
+        assert strategy != None
         self.name = name
-        self.jail_time = []
+        self.jail_time: List[int] = []
         self.opponent_sum = 0
-        self.opponent_decisions = []
-        self.decisions = []
-        self.strategy = None
+        self.opponent_decisions: List[Action] = []
+        self.decisions: List[Action] = []
+        self.strategy = strategy
 
     def add_play(self, decision, play):
         try:
@@ -54,41 +55,87 @@ class prisoner:
         except:
             print("Must be some non interger values: {}".format(self.jail_time))
 
+    def get_decision(self) -> Action:
+        return self.strategy.action(self.decisions, self.opponent_decisions)
 
-    def set_strategy(self, name):
-        self.strategy = name
+class PrisonersDilemma:
+    def __init__(self, matrix: Dict, prisoners: List[Prisoner]):
+        assert len(matrix) != 0
+        assert len(list(matrix.items())[0][0]) == len(prisoners)
+        self.play_matrix = matrix
+        self.prisoners = prisoners
 
-    def get_decision(self):
-        if self.strategy == "defector":
-            return "defecting"
-        if self.strategy == "idiot":
-            return "cooperating"
-        if self.strategy == "tit for tat":
-            if len(self.opponent_decisions) > 0:
-                return self.opponent_decisions[-1]
-            return "cooperating"
-        return "cooperating"
+    def get_result(self, decisions):
+        try:
+            return self.play_matrix[decisions]
+        except:
+            print(f"play_matrix is ill-formed!  Error {traceback.format_exc()}", file=sys.stderr)
 
+    def play_next_round(self) -> Tuple[Tuple[Action,...],List[int]]:
+        decisions = tuple(prisoner.get_decision() for prisoner in self.prisoners)
+        results = self.get_result(decisions)
 
-play_matrix = [[(1, 1), (3, 0)],[(0, 3), (2, 2)]]
-game = prisoners_dilemma(play_matrix)
-prisoner1 = prisoner("prisoner1") 
-prisoner1.set_strategy("idiot")
-prisoner2 = prisoner("prisoner2")
-prisoner2.set_strategy("defector")
-for i in range(10):
-    prisoner1_decision = prisoner1.get_decision()
-    prisoner2_decision = prisoner2.get_decision()
-    prisoner1_play, prisoner2_play = game.get_result(prisoner1_decision, prisoner2_decision)
-    print("Game: {} {}".format(prisoner1_decision, prisoner2_decision))
-    print("Result: {} {}".format(prisoner1_play, prisoner2_play))
-    print()
+        # HACK assuming 2 players!
+        assert len(self.prisoners) == 2
+        for i in range(2):
+            self.prisoners[i].add_play(decisions[i], results[i])
+            self.prisoners[i].opponent_history(decisions[1-i], results[1-i])
 
-    # adding reward info
-    prisoner1.add_play(prisoner1_decision, prisoner1_play)
-    prisoner1.opponent_history(prisoner2_decision, prisoner2_play)
-    prisoner2.add_play(prisoner2_decision, prisoner2_play)
-    prisoner2.opponent_history(prisoner1_decision, prisoner1_play)
+        return decisions, results
 
-print(prisoner1.get_result())
-print(prisoner2.get_result())
+# sample strategies:
+def strategy_defector() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        return Action.DEFECTING
+    return Strategy("defector", action)
+
+def strategy_idiot() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        return Action.COOPERATING
+    return Strategy("idiot", action)
+
+def strategy_random() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        return random.choice(list(Action))
+    return Strategy("random", action)
+
+def strategy_sophist() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        cnt_def = sum(1 for d in opponent_decisions if d == Action.DEFECTING)
+        cnt_coop = sum(1 for d in opponent_decisions if d == Action.COOPERATING)
+        if cnt_def > cnt_coop:
+            return Action.DEFECTING
+        else:
+            return Action.COOPERATING
+    return Strategy("sophist", action)
+
+def strategy_tit_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        if len(opponent_decisions) > 0:
+            return opponent_decisions[-1]
+        return Action.COOPERATING
+    return Strategy("tit for tat", action)
+
+def main():
+    play_matrix = {
+                    (Action.COOPERATING,Action.COOPERATING): (3,3),
+                    (Action.COOPERATING,Action.DEFECTING)  : (0,5),
+                    (Action.DEFECTING,  Action.COOPERATING): (5,0),
+                    (Action.DEFECTING,  Action.DEFECTING)  : (1,1),
+                  }
+    #prisoner1 = Prisoner("prisoner1.aka.idiot", strategy_idiot())
+    #prisoner2 = Prisoner("prisoner2.aka.defector", strategy_defector())
+    prisoner1 = Prisoner("prisoner1.aka.tit4tat", strategy_tit_for_tat())
+    prisoner2 = Prisoner("prisoner2.aka.sophist", strategy_sophist())
+    game = PrisonersDilemma(play_matrix, [prisoner1,prisoner2])
+    for i in range(10):
+        decisions, results = game.play_next_round()
+        print(f"Game: {', '.join(d.value for d in decisions)}")
+        print(f"Result: {', '.join(str(r) for r in results)}")
+        print()
+
+    print(f"Result for {prisoner1.name: <25} {prisoner1.get_result()}")
+    print(f"Result for {prisoner2.name: <25} {prisoner2.get_result()}")
+
+if __name__ == '__main__':
+    main()
