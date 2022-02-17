@@ -146,6 +146,19 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
     return Strategy("forgiving tit for tat", action)
 
 
+def strategy_pavlov() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        pavlov_decision = own_decisions[-1] if len(own_decisions) > 0 else\
+                            Action.COOPERATING
+        if(
+            len(opponent_decisions) > 0 and
+                opponent_decisions[-1] == Action.DEFECTING):
+            pavlov_decision = Action.COOPERATING if own_decisions[-1] ==\
+                                Action.DEFECTING else Action.DEFECTING
+        return pavlov_decision
+    return Strategy("pavlov", action)
+
+
 def main():
     play_matrix = {
                     (Action.COOPERATING, Action.COOPERATING): (3, 3),
@@ -154,8 +167,12 @@ def main():
                     (Action.DEFECTING,  Action.DEFECTING): (1, 1),
                   }
     # prisoner1 = Prisoner("prisoner1.aka.idiot", strategy_idiot())
-    prisoner2 = Prisoner("prisoner2.aka.defector", strategy_defector())
-    prisoner1 = Prisoner("prisoner2.aka.ft4t", strategy_forgiving_tit_for_tat())
+    # prisoner2 = Prisoner("prisoner2.aka.defector", strategy_defector())
+    prisoner2 = Prisoner("prisoner2.aka.pavlov", strategy_pavlov())
+    # prisoner1 = Prisoner(
+    #                "prisoner2.aka.ft4t",
+    #                strategy_forgiving_tit_for_tat())
+    prisoner1 = Prisoner("prisoner1.aka.pavlov", strategy_pavlov())
     # prisoner1 = Prisoner("prisoner1.aka.tit4tat", strategy_tit_for_tat())
     # prisoner2 = Prisoner("prisoner2.aka.sophist", strategy_sophist())
     game = PrisonersDilemma(play_matrix, [prisoner1, prisoner2])
