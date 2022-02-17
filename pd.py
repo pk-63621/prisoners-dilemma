@@ -67,11 +67,12 @@ class Prisoner:
 
 
 class PrisonersDilemma:
-    def __init__(self, matrix: Dict, prisoners: List[Prisoner]):
+    def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=None):
         assert len(matrix) != 0
         assert len(list(matrix.items())[0][0]) == len(prisoners)
         self.play_matrix = matrix
         self.prisoners = prisoners
+        self.noise_probability = noise
 
     def get_result(self, decisions):
         try:
@@ -82,16 +83,42 @@ class PrisonersDilemma:
                 file=sys.stderr)
             print("Exception {} raised".format(e))
 
+    def get_noise(self):
+        if self.noise_probability is None:
+            return False
+
+        random_floating_value = random.uniform(0, 1)
+        # print("Random Value {}".format(random_floating_value))
+        if random_floating_value < self.noise_probability:
+            # print("noise Value {}".format(self.noise_probability))
+            return True
+        else:
+            return False
+
     def play_next_round(self) -> Tuple[Tuple[Action, ...], List[int]]:
         decisions = tuple(
                         prisoner.get_decision() for prisoner in self.prisoners)
-        results = self.get_result(decisions)
+        corrupted_decision = None
+        results = list()
+        if self.get_noise():
+            print("Noise occured for prisoner 1")
+            corrupted_decision = Action.COOPERATING if decisions[0] ==\
+                                    Action.DEFECTING else Action.DEFECTING
+            new_decisions = tuple([corrupted_decision, decisions[1]])
+            results = self.get_result(new_decisions)
+        else:
+            results = self.get_result(decisions)
 
         # HACK assuming 2 players!
         assert len(self.prisoners) == 2
         for i in range(2):
             self.prisoners[i].add_play(decisions[i], results[i])
-            self.prisoners[i].opponent_history(decisions[1-i], results[1-i])
+            if i != 0 and corrupted_decision is not None:
+                self.prisoners[i].opponent_history(
+                                    corrupted_decision, results[1-i])
+            else:
+                self.prisoners[i].opponent_history(
+                                    decisions[1-i], results[1-i])
 
         return decisions, results
 
@@ -168,15 +195,19 @@ def main():
                   }
     # prisoner1 = Prisoner("prisoner1.aka.idiot", strategy_idiot())
     # prisoner2 = Prisoner("prisoner2.aka.defector", strategy_defector())
-    prisoner2 = Prisoner("prisoner2.aka.pavlov", strategy_pavlov())
+    prisoner2 = Prisoner("prisoner2.aka.tit4tat", strategy_tit_for_tat())
     # prisoner1 = Prisoner(
     #                "prisoner2.aka.ft4t",
     #                strategy_forgiving_tit_for_tat())
-    prisoner1 = Prisoner("prisoner1.aka.pavlov", strategy_pavlov())
-    # prisoner1 = Prisoner("prisoner1.aka.tit4tat", strategy_tit_for_tat())
+    # prisoner1 = Prisoner("prisoner1.aka.pavlov", strategy_pavlov())
+    prisoner1 = Prisoner("prisoner1.aka.tit4tat", strategy_tit_for_tat())
     # prisoner2 = Prisoner("prisoner2.aka.sophist", strategy_sophist())
-    game = PrisonersDilemma(play_matrix, [prisoner1, prisoner2])
-    for i in range(10):
+
+    # noise to change decision
+    noise = 0.05
+
+    game = PrisonersDilemma(play_matrix, [prisoner1, prisoner2], noise)
+    for i in range(30):
         decisions, results = game.play_next_round()
         print(f"Game: {', '.join(d.value for d in decisions)}")
         print(f"Result: {', '.join(str(r) for r in results)}")
