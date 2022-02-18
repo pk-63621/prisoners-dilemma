@@ -213,12 +213,38 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
 
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions):
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1] and own_decisions[-1] == Action.COOPERATING:
+        # switch strategy if opponent defected
+        # otherwise keep doing whatever we did last time
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
         if len(own_decisions) > 0:
             return own_decisions[-1]
         return Action.COOPERATING
     return Strategy("pavlov", action)
+
+
+def strategy_pavlovish() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        # defect if opponent defected and we didn't
+        # otherwise keep doing whatever we did last time
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
+            return Action.DEFECTING
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        return Action.COOPERATING
+    return Strategy("pavlovish", action)
+
+
+def strategy_pavlov_spooky() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        # switch strategy if opponent's action didn't match ours
+        # otherwise keep doing whatever we did last time
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
+            return complement_action(own_decisions[-1])
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        return Action.COOPERATING
+    return Strategy("pavlov_spooky", action)
 
 
 name2strategy = {
@@ -229,6 +255,8 @@ name2strategy = {
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
     "pavlov": strategy_pavlov(),
+    "pavlovish": strategy_pavlovish(),
+    "pavlov-spooky": strategy_pavlov_spooky(),
 }
 
 
