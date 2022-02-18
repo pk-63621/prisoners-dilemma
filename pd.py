@@ -127,14 +127,14 @@ class PrisonersDilemmaTournament:
         self.participants_per_game = participants_per_game
 
     def play_tournament(self):
-        i = 0
+        r = 0
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
-            i += 1
+            r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
             print()
-            print(f"=== Tournament Round #{i} ===")
+            print(f"=== Tournament Round #{r} ===")
             print()
             print(f"Participants: {', '.join(p.name for p in prisoners)}")
             print()
@@ -145,7 +145,7 @@ class PrisonersDilemmaTournament:
                 print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
                 print()
 
-            print(f"Result for Round #{i}:")
+            print(f"Result for Round #{r}:")
             padding_len = max(map(lambda p: len(p.name), prisoners))
             for p in prisoners:
                 print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
