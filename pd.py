@@ -127,35 +127,38 @@ class PrisonersDilemmaTournament:
         self.participants_per_game = participants_per_game
         self.final_outcome = dict()
 
-    def play_tournament(self):
+    def play_tournament(self, verbose=False):
         r = 0
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
-            """
-            print()
-            print(f"=== Tournament Round #{r} ===")
-            print()
-            print(f"Participants: {', '.join(p.name for p in prisoners)}")
-            print()
-            """
+            if verbose:
+                print()
+                print(f"=== Tournament Round #{r} ===")
+                print()
+                print(f"Participants: {', '.join(p.name for p in prisoners)}")
+                print()
+
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                # print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
-                # print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
-                # print()
+                if verbose:
+                    print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
+                    print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
+                    print()
 
-            # print(f"Result for Round #{r}:")
+            if verbose:
+                print(f"Result for Round #{r}:")
             padding_len = max(map(lambda p: len(p.name), prisoners))
             for p in prisoners:
                 if self.final_outcome.get(p.strategy.name) is None:
                     self.final_outcome[p.strategy.name] = [p.get_result()]
                 else:
                     self.final_outcome[p.strategy.name].append(p.get_result())
-                # print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
+                if verbose:
+                    print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
 
     def get_final_outcome(self):
         return self.final_outcome
@@ -244,11 +247,13 @@ def get_strategy_by_name(s: str, random_if_not_found=False) -> Optional[Strategy
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--verbose', '-v', action='store_true', help='Show output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='+', default=['defector','defector'], help='Strategies for prisoners')
     args = parser.parse_args()
 
+    verbose = args.verbose
     iterations = args.iterations
     noise = args.error_prob
     strategies_name = args.strategies
@@ -266,7 +271,7 @@ def main():
                     (Action.DEFECTING,   Action.DEFECTING):   (1, 1),
                   }
     tournament = PrisonersDilemmaTournament(play_matrix, strategies, iterations=iterations, noise_error_prob=noise)
-    tournament.play_tournament()
+    tournament.play_tournament(verbose)
     final_result = tournament.get_final_outcome()
 
     print("Strategy wise result")
