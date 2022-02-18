@@ -307,15 +307,17 @@ def main():
 
     print("Strategy wise result")
     print("--------------------")
-    best_strat, best_score = None, 0
+    best_strats, best_score = [], 0
     for strat in final_result.keys():
         total_score = sum(final_result[strat])
         print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
         if best_score < total_score:
             best_score = total_score
-            best_strat = strat
+            best_strats = [strat]
+        elif best_score == total_score:
+            best_strats.append(strat)
     print("--------------------")
-    print("\nBest strategy is {0:23} with score {1:7}".format(best_strat, best_score))
+    print("\nBest strategies are {0:23} with score {1:7}".format(', '.join(best_strats), best_score))
 
 
 
