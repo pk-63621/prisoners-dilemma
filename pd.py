@@ -125,6 +125,7 @@ class PrisonersDilemmaTournament:
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
+        self.final_outcome = dict()
 
     def play_tournament(self):
         r = 0
@@ -133,23 +134,31 @@ class PrisonersDilemmaTournament:
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
+            """
             print()
             print(f"=== Tournament Round #{r} ===")
             print()
             print(f"Participants: {', '.join(p.name for p in prisoners)}")
             print()
+            """
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
-                print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
-                print()
+                # print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
+                # print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
+                # print()
 
-            print(f"Result for Round #{r}:")
+            # print(f"Result for Round #{r}:")
             padding_len = max(map(lambda p: len(p.name), prisoners))
             for p in prisoners:
-                print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
-        # TODO final results for each strategy?
+                if self.final_outcome.get(p.strategy.name) is None:
+                    self.final_outcome[p.strategy.name] = [p.get_result()]
+                else:
+                    self.final_outcome[p.strategy.name].append(p.get_result())
+                # print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
+
+    def get_final_outcome(self):
+        return self.final_outcome
 
 
 # strategies -- add to name2strategy if adding new strategy
@@ -160,10 +169,10 @@ def strategy_defector() -> Strategy:
     return Strategy("defector", action)
 
 
-def strategy_idiot() -> Strategy:
+def strategy_gandhi() -> Strategy:
     def action(own_decisions, opponent_decisions):
         return Action.COOPERATING
-    return Strategy("idiot", action)
+    return Strategy("gandhi", action)
 
 
 def strategy_random() -> Strategy:
@@ -211,7 +220,7 @@ def strategy_pavlov() -> Strategy:
 
 name2strategy = {
     "defector": strategy_defector(),
-    "idiot": strategy_idiot(),
+    "gandhi": strategy_gandhi(),
     "random": strategy_random(),
     "sophist": strategy_sophist(),
     "tit-for-tat": strategy_tit_for_tat(),
@@ -258,6 +267,12 @@ def main():
                   }
     tournament = PrisonersDilemmaTournament(play_matrix, strategies, iterations=iterations, noise_error_prob=noise)
     tournament.play_tournament()
+    final_result = tournament.get_final_outcome()
+
+    print("Strategy wise result")
+    print("--------------------")
+    for strat in final_result.keys():
+        print("Strategy: {0:30} Result: {1:10}".format(strat, sum(final_result[strat])))
 
 
 if __name__ == '__main__':
