@@ -260,9 +260,13 @@ name2strategy = {
 }
 
 
+def all_strategies() -> List[Strategy]:
+    return name2strategy.values()
+
+
 def random_strategy() -> Strategy:
-    choice: str = random.choice(list(name2strategy.keys()))
-    return name2strategy[choice]
+    choice: Strategy = random.choice(all_strategies())
+    return choice
 
 
 def get_strategy_by_name(s: str, random_if_not_found=False) -> Optional[Strategy]:
@@ -286,11 +290,10 @@ def main():
     noise = args.error_prob
     strategies_name = args.strategies
 
-    if len(strategies_name) <= 1:
-        # return silently
-        return
-
-    strategies = map(lambda s: get_strategy_by_name(s, random_if_not_found=True), strategies_name)
+    if len(strategies_name) == 1 and strategies_name[0] == 'all':
+        strategies = all_strategies()
+    else:
+        strategies = map(lambda s: get_strategy_by_name(s, random_if_not_found=True), strategies_name)
 
     play_matrix = {
                     (Action.COOPERATING, Action.COOPERATING): (2, 2),
