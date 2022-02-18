@@ -210,7 +210,7 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
 
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions):
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1] and own_decisions[-1] == Action.COOPERATING:
             return complement_action(own_decisions[-1])
         if len(own_decisions) > 0:
             return own_decisions[-1]
