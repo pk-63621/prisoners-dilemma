@@ -142,7 +142,7 @@ class PrisonersDilemmaTournament:
 
     def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
         r = 0
-        outcome: Dict[TournamentParticipant,int] = {}
+        outcome: DefaultDict[TournamentParticipant,int] = defaultdict(int)
         if not quiet:
             print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
         for round_participants in itertools.combinations(self.participants, self.participants_per_game):
@@ -170,7 +170,7 @@ class PrisonersDilemmaTournament:
                 print(f"Result for Round #{r}:")
             for prisoner,participant in zip(prisoners,round_participants):
                 result = prisoner.get_result()
-                outcome[participant] = result
+                outcome[participant] += result
                 if verbose >= 2:
                     print(f"\t{participant.name: <{40}} {result}")
 
