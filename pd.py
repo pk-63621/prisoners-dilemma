@@ -265,6 +265,15 @@ def all_strategies() -> List[Strategy]:
     return name2strategy.values()
 
 
+def all_strategies_mod(excluding: List[str]=[]) -> List[Strategy]:
+    ret = []
+    for k,v in name2strategy.items():
+        if k in excluding:
+            continue
+        ret.append(v)
+    return ret
+
+
 def random_strategy() -> Strategy:
     choice: Strategy = random.choice(all_strategies())
     return choice
@@ -291,8 +300,12 @@ def main():
     noise = args.error_prob
     strategies_name = args.strategies
 
-    if len(strategies_name) == 1 and strategies_name[0] == 'all':
-        strategies = all_strategies()
+    if len(strategies_name) == 1 and strategies_name[0].startswith('all'):
+        excluding_strategies:List[str] = []
+        remaining_str: str = strategies_name[0][len('all'):]
+        if len(remaining_str) >= 1 and remaining_str[0] == '-':
+            excluding_strategies = remaining_str[1:].split(',')
+        strategies = all_strategies_mod(excluding_strategies)
     else:
         strategies = map(lambda s: get_strategy_by_name(s, random_if_not_found=True), strategies_name)
 
