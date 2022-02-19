@@ -539,6 +539,16 @@ def str_to_argv(s: str) -> List[str]:
     return shlex.split(s)
 
 
+def read_config(config):
+    ret = ''
+    for line in config:
+        line = line.strip()
+        if line.startswith('#'):
+            continue
+        ret += line
+    return ret
+
+
 def main():
     parser = argparse.ArgumentParser()
     verbosity = parser.add_mutually_exclusive_group()
@@ -555,7 +565,7 @@ def main():
 
     config = args.config
     if config is not None:
-        config_str = config.read()
+        config_str = read_config(config)
         if not args.quiet:
             print(f"Using args from config: {config_str}")
         # override args
