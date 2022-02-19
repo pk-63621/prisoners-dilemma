@@ -84,38 +84,22 @@ class Prisoner:
     def __init__(self, name: str, strategy: Strategy):
         assert strategy is not None
         self.name = name
-        self.jail_time: List[int] = []
-        self.opponent_sum = 0
+        self.jail_time: int = 0
+        self.opponent_sum: int = 0
         self.opponent_decisions: List[Action] = []
         self.decisions: List[Action] = []
         self.strategy = strategy
 
     def add_play(self, decision, play):
-        try:
-            if play is None or not decision:
-                print("No value for required variables: {} {}".format(
-                    play, decision))
-                return
-            self.jail_time.append(int(play))
-            self.decisions.append(decision)
-        except Exception as e:
-            print("fix the play value", e)
-            raise e
+        self.jail_time += int(play)
+        self.decisions.append(decision)
 
     def opponent_history(self, opponent_decision, last_play):
-        try:
-            self.opponent_sum += int(last_play)
-            self.opponent_decisions.append(opponent_decision)
-        except Exception as e:
-            print("Fix opponent history", e)
+        self.opponent_sum += int(last_play)
+        self.opponent_decisions.append(opponent_decision)
 
     def get_result(self) -> int:
-        try:
-            return sum(self.jail_time)
-        except Exception as e:
-            print("jail time values: {} with exception {}".format(
-                self.jail_time, e))
-            raise e
+        return self.jail_time
 
     def get_decision(self) -> Action:
         return self.strategy.action(self.decisions, self.opponent_decisions)
@@ -131,11 +115,7 @@ class PrisonersDilemma:
         self.rng = random.Random(rng_seed)
 
     def get_result(self, decisions):
-        try:
-            return self.play_matrix[decisions]
-        except Exception as e:
-            print(f"play_matrix is ill-formed!  Error {traceback.format_exc()}", file=sys.stderr)
-            raise e
+        return self.play_matrix[decisions]
 
     def noise_occurred(self):
         random_floating_value = self.rng.uniform(0, 1)
