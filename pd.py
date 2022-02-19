@@ -129,7 +129,7 @@ class PrisonersDilemmaTournament:
 
     def play_tournament(self, verbose=False):
         r = 0
-        for strats in itertools.combinations_with_replacement(self.strategies, self.participants_per_game):
+        for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
