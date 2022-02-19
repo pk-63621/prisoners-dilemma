@@ -3,8 +3,6 @@
 import shlex
 import argparse
 import random
-import sys
-import traceback
 import itertools
 import math
 
@@ -339,6 +337,7 @@ def has_defection(local_state, opponent_decisions):
     local_state['has_def'] = has_def
     return has_def
 
+
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if has_defection(local_state, opponent_decisions):
@@ -386,6 +385,7 @@ def get_coop_and_defect_count(local_state, opponent_decisions):
     local_state['cnt_def'] = cnt_def
     local_state['cnt_coop'] = cnt_coop
     return cnt_coop, cnt_def
+
 
 def strategy_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
