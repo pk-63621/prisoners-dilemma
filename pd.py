@@ -280,13 +280,11 @@ def strategy_pavlov() -> Strategy:
 
 def strategy_suspicious_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions):
-        # switch strategy if opponent defected
-        # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
         if len(own_decisions) > 0:
             return own_decisions[-1]
-        return Action.COOPERATING
+        return Action.DEFECTING
     return Strategy("suspicious pavlov", action)
 
 
