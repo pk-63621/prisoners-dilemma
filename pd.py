@@ -467,6 +467,16 @@ def strategy_pavlovish() -> Strategy:
     return Strategy("pavlovish", action)
 
 
+def strategy_suspicious_pavlovish() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
+            return Action.DEFECTING
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        return Action.DEFECTING
+    return Strategy("suspicious pavlovish", action)
+
+
 def strategy_pavlov_spooky() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # switch strategy if opponent's action didn't match ours
@@ -486,7 +496,7 @@ name2strategy = {
     "sophist": strategy_sophist(),
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
-    "syspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
+    "suspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
     "pavlov": strategy_pavlov(),
     "pavlovish": strategy_pavlovish(),
     "pavlov-spooky": strategy_pavlov_spooky(),
@@ -496,6 +506,7 @@ name2strategy = {
     "angry-grudger": strategy_angry_grudger(),
     "suspicious-sophist": strategy_suspicious_sophist(),
     "suspicious-pavlov": strategy_suspicious_pavlov(),
+    "suspicious-pavlovish": strategy_suspicious_pavlovish(),
 }
 
 
