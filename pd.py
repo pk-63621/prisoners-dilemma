@@ -266,7 +266,7 @@ def strategy_pavlov_spooky() -> Strategy:
 name2strategy = {
     "defector": strategy_defector(),
     "gandhi": strategy_gandhi(),
-#    "random": strategy_random(),
+    "random": strategy_random(),
     "sophist": strategy_sophist(),
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
