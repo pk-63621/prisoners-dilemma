@@ -38,8 +38,11 @@ class Strategy:
         self.name: str = name
         self.action: Callable = action
 
-    def action(self, own_decisions: List[Action], opponent_decisions: List[Action]) -> Action:
-        return self.action(own_decisions, opponent_decisions)
+    def action(self,
+               own_decisions: List[Action],
+               opponent_decisions: List[Action],
+               local_state: Dict) -> Action:
+        return self.action(own_decisions, opponent_decisions, local_state)
 
 
 class StrategyResults:
@@ -84,41 +87,26 @@ class Prisoner:
     def __init__(self, name: str, strategy: Strategy):
         assert strategy is not None
         self.name = name
-        self.jail_time: List[int] = []
-        self.opponent_sum = 0
+        self.jail_time: int = 0
+        self.opponent_sum: int = 0
         self.opponent_decisions: List[Action] = []
         self.decisions: List[Action] = []
         self.strategy = strategy
+        self.strategy_local_state: Dict = {}
 
     def add_play(self, decision, play):
-        try:
-            if play is None or not decision:
-                print("No value for required variables: {} {}".format(
-                    play, decision))
-                return
-            self.jail_time.append(int(play))
-            self.decisions.append(decision)
-        except Exception as e:
-            print("fix the play value", e)
-            raise e
+        self.jail_time += int(play)
+        self.decisions.append(decision)
 
     def opponent_history(self, opponent_decision, last_play):
-        try:
-            self.opponent_sum += int(last_play)
-            self.opponent_decisions.append(opponent_decision)
-        except Exception as e:
-            print("Fix opponent history", e)
+        self.opponent_sum += int(last_play)
+        self.opponent_decisions.append(opponent_decision)
 
     def get_result(self) -> int:
-        try:
-            return sum(self.jail_time)
-        except Exception as e:
-            print("jail time values: {} with exception {}".format(
-                self.jail_time, e))
-            raise e
+        return self.jail_time
 
     def get_decision(self) -> Action:
-        return self.strategy.action(self.decisions, self.opponent_decisions)
+        return self.strategy.action(self.decisions, self.opponent_decisions, self.strategy_local_state)
 
 
 class PrisonersDilemma:
@@ -131,11 +119,7 @@ class PrisonersDilemma:
         self.rng = random.Random(rng_seed)
 
     def get_result(self, decisions):
-        try:
-            return self.play_matrix[decisions]
-        except Exception as e:
-            print(f"play_matrix is ill-formed!  Error {traceback.format_exc()}", file=sys.stderr)
-            raise e
+        return self.play_matrix[decisions]
 
     def noise_occurred(self):
         random_floating_value = self.rng.uniform(0, 1)
@@ -329,57 +313,83 @@ class PrisonersDilemmaTournamentWithEvolution:
 # strategies -- add to name2strategy if adding new strategy
 
 def strategy_defector() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         return Action.DEFECTING
     return Strategy("defector", action)
 
 
 def strategy_alternator() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         return complement_action(own_decisions[-1]) if len(own_decisions) > 0 else Action.COOPERATING
     return Strategy("alternator", action)
 
 
 def strategy_hate_opponent() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         return complement_action(opponent_decisions[-1]) if len(opponent_decisions) > 0 else Action.DEFECTING
     return Strategy("hate opponent", action)
 
 
+def has_defection(local_state, opponent_decisions):
+    has_def = False
+    if 'has_def' in local_state:
+        has_def = local_state['has_def'] or (len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING)
+    else:
+        has_def = Action.DEFECTING in opponent_decisions
+    local_state['has_def'] = has_def
+    return has_def
+
 def strategy_grudger() -> Strategy:
-    def action(own_decisions, opponent_decisions):
-        if Action.DEFECTING in opponent_decisions:
+    def action(own_decisions, opponent_decisions, local_state):
+        if has_defection(local_state, opponent_decisions):
             return Action.DEFECTING
-        else:
-            return Action.COOPERATING
+        return Action.COOPERATING
     return Strategy("grudger", action)
 
 
 def strategy_angry_grudger() -> Strategy:
-    def action(own_decisions, opponent_decisions):
-        if Action.DEFECTING in opponent_decisions or len(opponent_decisions) == 0:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(opponent_decisions) == 0:
             return Action.DEFECTING
-        else:
-            return Action.COOPERATING
+        if has_defection(local_state, opponent_decisions):
+            return Action.DEFECTING
+        return Action.COOPERATING
     return Strategy("angry grudger", action)
 
 
 def strategy_gandhi() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         return Action.COOPERATING
     return Strategy("gandhi", action)
 
 
 def strategy_random() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         return random.choice(list(Action))
     return Strategy("random", action)
 
 
+def get_coop_and_defect_count(local_state, opponent_decisions):
+    cnt_def, cnt_coop = 0, 0
+    if 'cnt_def' in local_state:
+        assert 'cnt_coop' in local_state
+        assert len(opponent_decisions) >= 1
+        last_defecting = opponent_decisions[-1] == Action.DEFECTING
+        cnt_def = local_state['cnt_def'] + (1 if last_defecting else 0)
+        cnt_coop = local_state['cnt_coop'] + (0 if last_defecting else 1)
+    else:
+        for d in opponent_decisions:
+            if d == Action.DEFECTING:
+                cnt_def += 1
+            else:
+                cnt_coop += 1
+    local_state['cnt_def'] = cnt_def
+    local_state['cnt_coop'] = cnt_coop
+    return cnt_coop, cnt_def
+
 def strategy_sophist() -> Strategy:
-    def action(own_decisions, opponent_decisions):
-        cnt_def  = sum(1 for d in opponent_decisions if d == Action.DEFECTING)
-        cnt_coop = sum(1 for d in opponent_decisions if d == Action.COOPERATING)
+    def action(own_decisions, opponent_decisions, local_state):
+        cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
         if cnt_def > cnt_coop:
             return Action.DEFECTING
         return Action.COOPERATING
@@ -387,11 +397,10 @@ def strategy_sophist() -> Strategy:
 
 
 def strategy_suspicious_sophist() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) == 0:
             return Action.DEFECTING
-        cnt_def  = sum(1 for d in opponent_decisions if d == Action.DEFECTING)
-        cnt_coop = sum(1 for d in opponent_decisions if d == Action.COOPERATING)
+        cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
         if cnt_def >= cnt_coop:
             return Action.DEFECTING
         return Action.COOPERATING
@@ -399,7 +408,7 @@ def strategy_suspicious_sophist() -> Strategy:
 
 
 def strategy_tit_for_tat() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 1:
             return opponent_decisions[-1]
         return Action.COOPERATING
@@ -407,7 +416,7 @@ def strategy_tit_for_tat() -> Strategy:
 
 
 def strategy_suspicious_tit_for_tat() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 1:
             return opponent_decisions[-1]
         return Action.DEFECTING
@@ -415,7 +424,7 @@ def strategy_suspicious_tit_for_tat() -> Strategy:
 
 
 def strategy_forgiving_tit_for_tat() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 2 and opponent_decisions[-1] == opponent_decisions[-2]:
             return opponent_decisions[-1]
         return Action.COOPERATING
@@ -423,7 +432,7 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
 
 
 def strategy_pavlov() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         # switch strategy if opponent defected
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
@@ -435,7 +444,7 @@ def strategy_pavlov() -> Strategy:
 
 
 def strategy_suspicious_pavlov() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         # switch strategy if opponent defected
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
@@ -447,7 +456,7 @@ def strategy_suspicious_pavlov() -> Strategy:
 
 
 def strategy_pavlovish() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         # defect if opponent defected and we didn't
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
@@ -469,7 +478,7 @@ def strategy_suspicious_pavlovish() -> Strategy:
 
 
 def strategy_pavlov_spooky() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         # switch strategy if opponent's action didn't match ours
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
