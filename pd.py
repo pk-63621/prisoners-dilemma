@@ -136,9 +136,10 @@ class PrisonersDilemmaTournament:
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
             if verbose >= 1:
-                print()
-                print(f"=== Tournament Round #{r} ===")
-                print()
+                pass
+                #print()
+                #print(f"=== Tournament Round #{r} ===")
+                #print()
                 #print(f"Participants: {', '.join(p.name for p in prisoners)}")
                 #print()
 
@@ -146,9 +147,10 @@ class PrisonersDilemmaTournament:
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
                 if verbose >= 2:
-                    print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
-                    print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
-                    print()
+                    #print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
+                    #print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
+                    #print()
+                    pass
 
             if verbose >= 1:
                 print(f"Result for Round #{r}:")
@@ -179,6 +181,12 @@ def strategy_alternator() -> Strategy:
     return Strategy("alternator", action)
 
 
+def strategy_hate_opponent() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        return complement_action(opponent_decisions[-1]) if len(opponent_decisions) > 0 else Action.DEFECTING
+    return Strategy("hate opponent", action)
+
+
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions):
         if Action.DEFECTING in opponent_decisions:
@@ -186,6 +194,15 @@ def strategy_grudger() -> Strategy:
         else:
             return Action.COOPERATING
     return Strategy("grudger", action)
+
+
+def strategy_angry_grudger() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        if Action.DEFECTING in opponent_decisions or len(opponent_decisions) == 0:
+            return Action.DEFECTING
+        else:
+            return Action.COOPERATING
+    return Strategy("angry grudger", action)
 
 
 def strategy_gandhi() -> Strategy:
@@ -208,6 +225,18 @@ def strategy_sophist() -> Strategy:
             return Action.DEFECTING
         return Action.COOPERATING
     return Strategy("sophist", action)
+
+
+def strategy_suspicious_sophist() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        if len(opponent_decisions) == 0:
+            return Action.DEFECTING
+        cnt_def  = sum(1 for d in opponent_decisions if d == Action.DEFECTING)
+        cnt_coop = sum(1 for d in opponent_decisions if d == Action.COOPERATING)
+        if cnt_def >= cnt_coop:
+            return Action.DEFECTING
+        return Action.COOPERATING
+    return Strategy("suspicious sophist", action)
 
 
 def strategy_tit_for_tat() -> Strategy:
@@ -247,6 +276,18 @@ def strategy_pavlov() -> Strategy:
     return Strategy("pavlov", action)
 
 
+def strategy_suspicious_pavlov() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        # switch strategy if opponent defected
+        # otherwise keep doing whatever we did last time
+        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
+            return complement_action(own_decisions[-1])
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        return Action.COOPERATING
+    return Strategy("suspicious pavlov", action)
+
+
 def strategy_pavlovish() -> Strategy:
     def action(own_decisions, opponent_decisions):
         # defect if opponent defected and we didn't
@@ -284,6 +325,10 @@ name2strategy = {
     "pavlov-spooky": strategy_pavlov_spooky(),
     "alternator": strategy_alternator(),
     "grudger": strategy_grudger(),
+    "hate-opponent": strategy_hate_opponent(),
+    "angry-grudger": strategy_angry_grudger(),
+    "suspicious-sophist": strategy_suspicious_sophist(),
+    "suspicious-pavlov": strategy_suspicious_pavlov(),
 }
 
 
