@@ -8,7 +8,7 @@ import traceback
 import itertools
 
 from enum import Enum
-from typing import Callable, Dict, Tuple, List, Optional, TypeVar, Union
+from typing import Callable, Dict, Tuple, List, TypeVar, Union
 
 T = TypeVar('T')
 
@@ -337,7 +337,7 @@ def all_strategies():
     return name2strategy.values()
 
 
-def all_strategies_mod(excluding: List[str]=[]) -> List[Strategy]:
+def all_strategies_mod(excluding: List[str] = []) -> List[Strategy]:
     ret = []
     for k,v in name2strategy.items():
         if k in excluding:
@@ -428,7 +428,6 @@ def main():
         print("--------------------")
         print()
     print("Best strategies are {0:70} with score {1:7}".format(', '.join(best_strats), best_score))
-
 
 
 if __name__ == '__main__':
