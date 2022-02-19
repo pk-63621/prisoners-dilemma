@@ -345,13 +345,14 @@ def main():
     tournament = PrisonersDilemmaTournament(play_matrix, strategies, iterations=iterations, noise_error_prob=noise)
     tournament.play_tournament(verbose)
     final_result = tournament.get_final_outcome()
+    sorted_results = sorted(final_result.items(), key=lambda p: sum(p[1]))
 
     print()
     print("Strategy wise result")
     print("--------------------")
     best_strats, best_score = [], 0
-    for strat in final_result.keys():
-        total_score = sum(final_result[strat])
+    for strat,sl in sorted_results:
+        total_score = sum(sl)
         print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
         if best_score < total_score:
             best_score = total_score
