@@ -244,7 +244,7 @@ def strategy_pavlov_spooky() -> Strategy:
         if len(own_decisions) > 0:
             return own_decisions[-1]
         return Action.COOPERATING
-    return Strategy("pavlov_spooky", action)
+    return Strategy("pavlov spooky", action)
 
 
 name2strategy = {
@@ -305,6 +305,7 @@ def main():
     tournament.play_tournament(verbose)
     final_result = tournament.get_final_outcome()
 
+    print()
     print("Strategy wise result")
     print("--------------------")
     best_strats, best_score = [], 0
