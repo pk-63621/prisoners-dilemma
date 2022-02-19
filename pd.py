@@ -127,9 +127,10 @@ class PrisonersDilemmaTournament:
         self.participants_per_game = participants_per_game
         self.final_outcome = dict()
 
-    def play_tournament(self, verbose=0):
+    def play_tournament(self, verbose=0, quiet=False):
         r = 0
-        print(f"Tournament participants: {', '.join(s.name for s in self.strategies)}")
+        if not quiet:
+            print(f"Tournament participants: {', '.join(s.name for s in self.strategies)}")
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
@@ -321,12 +322,15 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument('--quiet', '-q', action='store_true', help='Just print final result')
+    verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='+', default=['defector','defector'], help='Strategies for prisoners')
     args = parser.parse_args()
 
+    quiet = args.quiet
     verbose = args.verbose
     iterations = args.iterations
     noise = args.error_prob
@@ -343,24 +347,28 @@ def main():
                     (Action.DEFECTING,   Action.DEFECTING):   (1, 1),
                   }
     tournament = PrisonersDilemmaTournament(play_matrix, strategies, iterations=iterations, noise_error_prob=noise)
-    tournament.play_tournament(verbose)
+    tournament.play_tournament(verbose, quiet=quiet)
     final_result = tournament.get_final_outcome()
     sorted_results = sorted(final_result.items(), key=lambda p: sum(p[1]))
 
-    print()
-    print("Strategy wise result")
-    print("--------------------")
+    if not quiet:
+        print()
+        print("Strategy wise result")
+        print("--------------------")
     best_strats, best_score = [], 0
     for strat,sl in sorted_results:
         total_score = sum(sl)
-        print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
+        if not quiet:
+            print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
         if best_score < total_score:
             best_score = total_score
             best_strats = [strat]
         elif best_score == total_score:
             best_strats.append(strat)
-    print("--------------------")
-    print("\nBest strategies are {0:23} with score {1:7}".format(', '.join(best_strats), best_score))
+    if not quiet:
+        print("--------------------")
+        print()
+    print("Best strategies are {0:30} with score {1:7}".format(', '.join(best_strats), best_score))
 
 
 
