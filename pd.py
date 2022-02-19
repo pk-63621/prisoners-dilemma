@@ -368,7 +368,7 @@ def main():
     if not quiet:
         print("--------------------")
         print()
-    print("Best strategies are {0:30} with score {1:7}".format(', '.join(best_strats), best_score))
+    print("Best strategies are {0:70} with score {1:7}".format(', '.join(best_strats), best_score))
 
 
 
