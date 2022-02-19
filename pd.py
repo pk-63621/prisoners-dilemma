@@ -466,6 +466,8 @@ def main():
     config = args.config
     if config is not None:
         config_str = config.read()
+        if not args.quiet:
+            print(f"Using args from config: {config_str}")
         # override args
         args = parser.parse_args(str_to_argv(config_str))
     quiet = args.quiet
