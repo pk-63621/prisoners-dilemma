@@ -6,9 +6,11 @@ import random
 import sys
 import traceback
 import itertools
+import math
 
 from enum import Enum
-from typing import Callable, Dict, Tuple, List, TypeVar, Union
+from collections import defaultdict
+from typing import Callable, DefaultDict, Dict, List, Optional, Tuple, TypeVar, Union
 
 T = TypeVar('T')
 
@@ -118,26 +120,37 @@ class PrisonersDilemma:
         return decisions_after_noise, results
 
 
+class TournamentParticipant:
+    def __init__(self, name: str, strategy: Strategy):
+        self.name = name
+        self.strategy = strategy
+
+    def replicate(self, generation: int):
+        new_name = f"{self.name}.{generation}"
+        new_strategy = self.strategy
+        return TournamentParticipant(new_name, new_strategy)
+
+
 # all participants play against each other
 class PrisonersDilemmaTournament:
-    def __init__(self, play_matrix, strategies: List[Strategy], participants_per_game=2, iterations=10, noise_error_prob=0.0):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant], participants_per_game=2, iterations=10, noise_error_prob=0.0):
         self.play_matrix = play_matrix
-        self.strategies = strategies
+        self.participants = participants
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
-        self.final_outcome = dict()
 
-    def play_tournament(self, verbose=0, quiet=False):
+    def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
         r = 0
+        outcome: Dict[TournamentParticipant,int] = {}
         if not quiet:
-            print(f"Tournament participants[{len(self.strategies)}]: {', '.join(s.name for s in self.strategies)}")
-        for strats in itertools.combinations(self.strategies, self.participants_per_game):
+            print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
+        for round_participants in itertools.combinations(self.participants, self.participants_per_game):
             r += 1
-            prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
+            prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
-            if verbose >= 2:
+            if verbose >= 3:
                 print()
                 print(f"=== Tournament Round #{r} ===")
                 print()
@@ -147,25 +160,80 @@ class PrisonersDilemmaTournament:
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                if verbose >= 2:
+                if verbose >= 3:
                     print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
                     print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
                     print()
                     pass
 
-            if verbose >= 1:
+            if verbose >= 2:
                 print(f"Result for Round #{r}:")
-            padding_len = max(map(lambda p: len(p.name), prisoners))
-            for p in prisoners:
-                if self.final_outcome.get(p.strategy.name) is None:
-                    self.final_outcome[p.strategy.name] = [p.get_result()]
-                else:
-                    self.final_outcome[p.strategy.name].append(p.get_result())
-                if verbose >= 1:
-                    print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
+            for prisoner,participant in zip(prisoners,round_participants):
+                result = prisoner.get_result()
+                outcome[participant] = result
+                if verbose >= 2:
+                    print(f"\t{participant.name: <{40}} {result}")
 
-    def get_final_outcome(self):
-        return self.final_outcome
+        if verbose >= 1:
+            print()
+            print("Tournament outcome")
+            sorted_results = sorted(outcome.items(), key=lambda p: p[1])
+            print("------------------")
+            for part,score in sorted_results:
+                print("\t{0:40} {1:10}".format(part.name, score))
+            print("------------------")
+        return outcome
+
+
+class PrisonersDilemmaTournamentWithEvolution(PrisonersDilemmaTournament):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant],
+                 participants_per_game=2,
+                 iterations=10,
+                 noise_error_prob=0.0,
+                 fraction_eliminated_after_each_tournament=0.1,
+                 rounds_of_evolution=2):
+        self.play_matrix = play_matrix
+        self.participants = participants
+        self.iterations = iterations
+        self.noise_error_prob = noise_error_prob
+        self.participants_per_game = participants_per_game
+        self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
+        self.rounds_of_evolution = rounds_of_evolution
+
+    def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
+        tournament = PrisonersDilemmaTournament(self.play_matrix, self.participants,
+                                                participants_per_game=self.participants_per_game,
+                                                iterations=self.iterations,
+                                                noise_error_prob=self.noise_error_prob)
+        return tournament.play_tournament(verbose=verbose, quiet=False)
+
+    def eliminate_and_replicate(self, last_outcome: Dict[TournamentParticipant,int], generation: int, verbose=0):
+        if last_outcome is None:
+            return
+
+        last_outcome_sorted = sorted(last_outcome.items(), key=lambda p: p[1])
+        nr = math.floor(len(self.participants)*self.fraction_eliminated_after_each_tournament)
+        to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
+        to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
+        new_participants = [p for p in self.participants if p.name not in to_be_eliminated]
+        new_participants.extend([p.replicate(generation) for p in self.participants if p.name in to_be_replicated])
+        self.participants = new_participants
+        if verbose >= 1:
+            print()
+            print(f"*** Eliminating bottom {nr} and replicating top {nr}")
+            print()
+        if verbose >= 2:
+            print()
+            print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
+            print(f"*** Replicated: {', '.join(to_be_replicated)}")
+            print()
+
+    def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[Dict[TournamentParticipant,int]]:
+        last_outcome = None
+        for i in range(self.rounds_of_evolution):
+            last_outcome = self.play_tournament(verbose, quiet)
+            self.eliminate_and_replicate(last_outcome, i+1, verbose)
+        return last_outcome
 
 
 # strategies -- add to name2strategy if adding new strategy
@@ -258,8 +326,7 @@ def strategy_suspicious_tit_for_tat() -> Strategy:
 
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions):
-        if (len(opponent_decisions) >= 2
-                and opponent_decisions[-1] == opponent_decisions[-2]):
+        if len(opponent_decisions) >= 2 and opponent_decisions[-1] == opponent_decisions[-2]:
             return opponent_decisions[-1]
         return Action.COOPERATING
     return Strategy("forgiving tit for tat", action)
@@ -365,6 +432,13 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     return []
 
 
+def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,int]):
+    ret: DefaultDict[str,int] = defaultdict(int)
+    for part, score in participant_results.items():
+        ret[part.strategy.name] += score
+    return ret
+
+
 def str_to_argv(s: str) -> List[str]:
     return shlex.split(s)
 
@@ -375,6 +449,7 @@ def main():
     verbosity.add_argument('--quiet', '-q', action='store_true', help='Just print final result')
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
+    parser.add_argument('--rounds', '-r', default=2, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['defector','defector'], help='Strategies for prisoners')
@@ -388,6 +463,7 @@ def main():
     quiet = args.quiet
     verbose = args.verbose
     iterations = args.iterations
+    rounds = args.rounds
     noise = args.error_prob
     strategies_name = args.strategies
 
@@ -405,18 +481,22 @@ def main():
                     (Action.DEFECTING,   Action.COOPERATING): (3, 0),
                     (Action.DEFECTING,   Action.DEFECTING):   (1, 1),
                   }
-    tournament = PrisonersDilemmaTournament(play_matrix, strategies, iterations=iterations, noise_error_prob=noise)
-    tournament.play_tournament(verbose, quiet=quiet)
-    final_result = tournament.get_final_outcome()
-    sorted_results = sorted(final_result.items(), key=lambda p: sum(p[1]))
 
+    participants = [TournamentParticipant(f"p{i}.{s.name}", s) for i,s in enumerate(strategies)]
+    tournament = PrisonersDilemmaTournamentWithEvolution(play_matrix, participants,
+                                                         iterations=iterations,
+                                                         noise_error_prob=noise,
+                                                         rounds_of_evolution=rounds)
+    final_result = tournament.play_tournament_with_evolution(verbose, quiet=quiet)
+
+    strategy_results = participant_to_strategy_wise_results(final_result)
+    sorted_strategy_results = sorted(strategy_results.items(), key=lambda p: p[1])
     if not quiet:
         print()
         print("Strategy wise result")
         print("--------------------")
     best_strats, best_score = [], 0
-    for strat,sl in sorted_results:
-        total_score = sum(sl)
+    for strat,total_score in sorted_strategy_results:
         if not quiet:
             print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
         if best_score < total_score:
