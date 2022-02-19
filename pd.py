@@ -303,7 +303,7 @@ def all_strategies_mod(excluding: List[str]=[]) -> List[Strategy]:
 
 
 def random_strategy() -> Strategy:
-    choice: Strategy = random.choice(all_strategies())
+    choice: Strategy = random.choice(list(all_strategies()))
     return choice
 
 
