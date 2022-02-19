@@ -137,21 +137,20 @@ class PrisonersDilemmaTournament:
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
-            if verbose >= 1:
-                pass
-                #print()
-                #print(f"=== Tournament Round #{r} ===")
-                #print()
-                #print(f"Participants: {', '.join(p.name for p in prisoners)}")
-                #print()
+            if verbose >= 2:
+                print()
+                print(f"=== Tournament Round #{r} ===")
+                print()
+                print(f"Participants: {', '.join(p.name for p in prisoners)}")
+                print()
 
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
                 if verbose >= 2:
-                    #print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
-                    #print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
-                    #print()
+                    print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
+                    print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
+                    print()
                     pass
 
             if verbose >= 1:
