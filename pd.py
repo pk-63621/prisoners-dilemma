@@ -347,6 +347,10 @@ def main():
     noise = args.error_prob
     strategies_name = args.strategies
 
+    if len(strategies_name) <= 1:
+        # exit silently if enough args not provided
+        return
+
     strategies = []
     for s in strategies_name:
         strategies.extend(get_strategies_by_name(s, random_if_not_found=True))
