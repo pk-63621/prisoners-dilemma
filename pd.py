@@ -448,14 +448,39 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     return []
 
 
-PairCountScore = namedtuple('PairCountScore', ['count', 'score'], defaults=[0,0])
+class StrategyResults:
+    def __init__(self):
+        self.dict: DefaultDict[str,List[int]] = defaultdict(list)
+        self.cache_invalidated = False
+        self.sorted_items: List[Tuple[str,List[int]]] = []
+
+    def add_score(self, name: str, score: int):
+        self.dict[name].append(score)
+        self.cache_invalidated = True
+
+    def get_sorted_items(self) -> List[Tuple[str,List[int]]]:
+        if self.cache_invalidated:
+            self.sorted_items = sorted(self.dict.items(), key=lambda p: sum(p[1]))
+            self.cache_invalidated = False
+        return self.sorted_items
+
+    def get_best_strategies_and_score(self) -> Tuple[List[str],int]:
+        sorted_items = self.get_sorted_items()
+        best_strats, best_score = [], 0
+        for strat,sl in sorted_items:
+            total_score = sum(sl)
+            if best_score < total_score:
+                best_score = total_score
+                best_strats = [strat]
+            elif best_score == total_score:
+                best_strats.append(strat)
+        return best_strats, best_score
 
 
-def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,PairCountScore]):
-    ret: DefaultDict[str,PairCountScore] = defaultdict(PairCountScore)
+def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,int]) -> StrategyResults:
+    ret = StrategyResults()
     for part, score in participant_results.items():
-        existing = ret[part.strategy.name]
-        ret[part.strategy.name] = PairCountScore(existing.count+1, existing.score+score)
+        ret.add_score(part.strategy.name, score)
     return ret
 
 
@@ -516,22 +541,13 @@ def main():
     final_result = tournament.play_tournament_with_evolution(verbose, quiet=quiet)
 
     strategy_results = participant_to_strategy_wise_results(final_result)
-    sorted_strategy_results = sorted(strategy_results.items(), key=lambda p: p[1].score)
+    best_strats, best_score = strategy_results.get_best_strategies_and_score()
     if not quiet:
         print()
         print("Strategy wise result")
         print("--------------------")
-    best_strats, best_score = [], 0
-    for strat,count_score in sorted_strategy_results:
-        count, total_score = count_score
-        if not quiet:
-            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, count, total_score))
-        if best_score < total_score:
-            best_score = total_score
-            best_strats = [strat]
-        elif best_score == total_score:
-            best_strats.append(strat)
-    if not quiet:
+        for strat,sl in strategy_results.get_sorted_items():
+            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, len(sl), sum(sl)))
         print("--------------------")
         print()
     print(f"Best strategies are {', '.join(best_strats)}")
