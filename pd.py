@@ -296,12 +296,18 @@ def random_strategy() -> Strategy:
     return choice
 
 
-def get_strategy_by_name(s: str, random_if_not_found=False) -> Optional[Strategy]:
+def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     if s in name2strategy:
-        return name2strategy[s]
+        return [name2strategy[s]]
+    if s.startswith('all'):
+        excluding_strategies:List[str] = []
+        remaining_str: str = s[len('all'):]
+        if len(remaining_str) >= 1 and remaining_str[0] == '-':
+            excluding_strategies = remaining_str[1:].split(',')
+        return all_strategies_mod(excluding_strategies)
     if random_if_not_found:
-        return random_strategy()
-    return None
+        return [random_strategy()]
+    return []
 
 
 def main():
@@ -317,14 +323,9 @@ def main():
     noise = args.error_prob
     strategies_name = args.strategies
 
-    if len(strategies_name) == 1 and strategies_name[0].startswith('all'):
-        excluding_strategies:List[str] = []
-        remaining_str: str = strategies_name[0][len('all'):]
-        if len(remaining_str) >= 1 and remaining_str[0] == '-':
-            excluding_strategies = remaining_str[1:].split(',')
-        strategies = all_strategies_mod(excluding_strategies)
-    else:
-        strategies = map(lambda s: get_strategy_by_name(s, random_if_not_found=True), strategies_name)
+    strategies = []
+    for s in strategies_name:
+        strategies.extend(get_strategies_by_name(s, random_if_not_found=True))
 
     play_matrix = {
                     (Action.COOPERATING, Action.COOPERATING): (2, 2),
