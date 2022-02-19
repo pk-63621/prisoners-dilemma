@@ -127,29 +127,29 @@ class PrisonersDilemmaTournament:
         self.participants_per_game = participants_per_game
         self.final_outcome = dict()
 
-    def play_tournament(self, verbose=False):
+    def play_tournament(self, verbose=0):
         r = 0
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
 
-            if verbose:
+            if verbose >= 1:
                 print()
                 print(f"=== Tournament Round #{r} ===")
                 print()
-                print(f"Participants: {', '.join(p.name for p in prisoners)}")
-                print()
+                #print(f"Participants: {', '.join(p.name for p in prisoners)}")
+                #print()
 
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                if verbose:
+                if verbose >= 2:
                     print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
                     print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
                     print()
 
-            if verbose:
+            if verbose >= 1:
                 print(f"Result for Round #{r}:")
             padding_len = max(map(lambda p: len(p.name), prisoners))
             for p in prisoners:
@@ -157,7 +157,7 @@ class PrisonersDilemmaTournament:
                     self.final_outcome[p.strategy.name] = [p.get_result()]
                 else:
                     self.final_outcome[p.strategy.name].append(p.get_result())
-                if verbose:
+                if verbose >= 1:
                     print(f"\t{p.name: <{padding_len}} = {p.get_result()}")
 
     def get_final_outcome(self):
@@ -259,7 +259,7 @@ def strategy_pavlov_spooky() -> Strategy:
         if len(own_decisions) > 0:
             return own_decisions[-1]
         return Action.COOPERATING
-    return Strategy("pavlov_spooky", action)
+    return Strategy("pavlov spooky", action)
 
 
 name2strategy = {
@@ -296,7 +296,7 @@ def get_strategy_by_name(s: str, random_if_not_found=False) -> Optional[Strategy
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--verbose', '-v', action='store_true', help='Show output of each game')
+    parser.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='+', default=['defector','defector'], help='Strategies for prisoners')
@@ -322,6 +322,7 @@ def main():
     tournament.play_tournament(verbose)
     final_result = tournament.get_final_outcome()
 
+    print()
     print("Strategy wise result")
     print("--------------------")
     best_strats, best_score = [], 0
