@@ -185,7 +185,7 @@ class PrisonersDilemmaTournament:
         return outcome
 
 
-class PrisonersDilemmaTournamentWithEvolution(PrisonersDilemmaTournament):
+class PrisonersDilemmaTournamentWithEvolution:
     def __init__(self, play_matrix, participants: List[TournamentParticipant],
                  participants_per_game=2,
                  iterations=10,
@@ -193,31 +193,32 @@ class PrisonersDilemmaTournamentWithEvolution(PrisonersDilemmaTournament):
                  fraction_eliminated_after_each_tournament=0.1,
                  rounds_of_evolution=2):
         self.play_matrix = play_matrix
-        self.participants = participants
+        self.orig_participants = participants
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
         self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
         self.rounds_of_evolution = rounds_of_evolution
 
-    def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
-        tournament = PrisonersDilemmaTournament(self.play_matrix, self.participants,
+    def play_tournament(self, participants, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
+        tournament = PrisonersDilemmaTournament(self.play_matrix, participants,
                                                 participants_per_game=self.participants_per_game,
                                                 iterations=self.iterations,
                                                 noise_error_prob=self.noise_error_prob)
         return tournament.play_tournament(verbose=verbose, quiet=False)
 
-    def eliminate_and_replicate(self, last_outcome: Dict[TournamentParticipant,int], generation: int, verbose=0):
-        if last_outcome is None:
-            return
-
+    def eliminate_and_replicate(self,
+                                last_participants: List[TournamentParticipant],
+                                last_outcome: Dict[TournamentParticipant,int],
+                                generation: int, verbose=0) -> List[TournamentParticipant]:
+        assert last_outcome is not None
+        assert len(last_outcome) == len(last_participants)
         last_outcome_sorted = sorted(last_outcome.items(), key=lambda p: p[1])
-        nr = math.floor(len(self.participants)*self.fraction_eliminated_after_each_tournament)
+        nr = math.floor(len(last_participants)*self.fraction_eliminated_after_each_tournament)
         to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
         to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
-        new_participants = [p for p in self.participants if p.name not in to_be_eliminated]
-        new_participants.extend([p.replicate(generation) for p in self.participants if p.name in to_be_replicated])
-        self.participants = new_participants
+        new_participants = [p for p in last_participants if p.name not in to_be_eliminated]
+        new_participants.extend([p.replicate(generation) for p in last_participants if p.name in to_be_replicated])
         if verbose >= 1:
             print()
             print(f"*** Eliminating bottom {nr} and replicating top {nr}")
@@ -227,12 +228,14 @@ class PrisonersDilemmaTournamentWithEvolution(PrisonersDilemmaTournament):
             print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
             print(f"*** Replicated: {', '.join(to_be_replicated)}")
             print()
+        return new_participants
 
     def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[Dict[TournamentParticipant,int]]:
         last_outcome = None
+        last_participants = self.orig_participants
         for i in range(self.rounds_of_evolution):
-            last_outcome = self.play_tournament(verbose, quiet)
-            self.eliminate_and_replicate(last_outcome, i+1, verbose)
+            last_outcome = self.play_tournament(last_participants, verbose, quiet)
+            last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, verbose)
         return last_outcome
 
 
