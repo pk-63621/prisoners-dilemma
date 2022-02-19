@@ -1,6 +1,6 @@
 SRCS := pd.py
 
-all: mypy
+all: mypy flake8
 
 mypy:
 	mypy $(SRCS)
