@@ -532,18 +532,26 @@ def random_strategy() -> Strategy:
     return choice
 
 
-def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
+def get_strategies_by_name(sc: str, random_if_not_found=False) -> List[Strategy]:
+    def decode_into_strategy_and_count(sc):
+        ss = sc.split('*')
+        if len(ss) == 2 and ss[1].isdigit():
+            cnt = max(int(ss[1]), 1)
+            return ss[0], cnt
+        return sc, 1
+    s, cnt = decode_into_strategy_and_count(sc)
+    ret = []
     if s in name2strategy:
-        return [name2strategy[s]]
-    if s.startswith('all'):
+        ret = [name2strategy[s]]
+    elif s.startswith('all'):
         excluding_strategies:List[str] = []
         remaining_str: str = s[len('all'):]
         if len(remaining_str) >= 1 and remaining_str[0] == '-':
             excluding_strategies = remaining_str[1:].split(',')
-        return all_strategies_mod(excluding_strategies)
-    if random_if_not_found:
-        return [random_strategy()]
-    return []
+        ret = all_strategies_mod(excluding_strategies)
+    elif random_if_not_found:
+        ret = [random_strategy()]
+    return ret*cnt
 
 
 def str_to_argv(s: str) -> List[str]:
@@ -571,7 +579,7 @@ def main():
     parser.add_argument('--rng-seed', '-s', default=None, type=int, help='Seed to be passed to RNG')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['all'],
-                        help=f"Strategies for prisoners.  Possible values are: all, all-[S1,S2,...], {', '.join(all_strategies_name())}")
+                        help=f"Strategies for prisoners.  Use multiplier '*N' for specifying multiple copies (e.g. all*4).  Possible values are: all, all-[S1,S2,...], {', '.join(all_strategies_name())}")
     args = parser.parse_args()
 
     config = args.config
