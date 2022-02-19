@@ -205,7 +205,7 @@ class PrisonersDilemmaTournamentWithEvolution:
                                                 participants_per_game=self.participants_per_game,
                                                 iterations=self.iterations,
                                                 noise_error_prob=self.noise_error_prob)
-        return tournament.play_tournament(verbose=verbose, quiet=False)
+        return tournament.play_tournament(verbose=verbose, quiet=quiet)
 
     def eliminate_and_replicate(self,
                                 last_participants: List[TournamentParticipant],
