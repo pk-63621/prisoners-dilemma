@@ -129,6 +129,7 @@ class PrisonersDilemmaTournament:
 
     def play_tournament(self, verbose=0):
         r = 0
+        print(f"Tournament participants: {', '.join(s.name for s in self.strategies)}")
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
@@ -290,17 +291,32 @@ def all_strategies() -> List[Strategy]:
     return name2strategy.values()
 
 
+def all_strategies_mod(excluding: List[str]=[]) -> List[Strategy]:
+    ret = []
+    for k,v in name2strategy.items():
+        if k in excluding:
+            continue
+        ret.append(v)
+    return ret
+
+
 def random_strategy() -> Strategy:
     choice: Strategy = random.choice(all_strategies())
     return choice
 
 
-def get_strategy_by_name(s: str, random_if_not_found=False) -> Optional[Strategy]:
+def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     if s in name2strategy:
-        return name2strategy[s]
+        return [name2strategy[s]]
+    if s.startswith('all'):
+        excluding_strategies:List[str] = []
+        remaining_str: str = s[len('all'):]
+        if len(remaining_str) >= 1 and remaining_str[0] == '-':
+            excluding_strategies = remaining_str[1:].split(',')
+        return all_strategies_mod(excluding_strategies)
     if random_if_not_found:
-        return random_strategy()
-    return None
+        return [random_strategy()]
+    return []
 
 
 def main():
@@ -316,10 +332,9 @@ def main():
     noise = args.error_prob
     strategies_name = args.strategies
 
-    if len(strategies_name) == 1 and strategies_name[0] == 'all':
-        strategies = all_strategies()
-    else:
-        strategies = map(lambda s: get_strategy_by_name(s, random_if_not_found=True), strategies_name)
+    strategies = []
+    for s in strategies_name:
+        strategies.extend(get_strategies_by_name(s, random_if_not_found=True))
 
     play_matrix = {
                     (Action.COOPERATING, Action.COOPERATING): (2, 2),
