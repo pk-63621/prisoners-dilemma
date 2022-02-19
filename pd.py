@@ -173,6 +173,21 @@ def strategy_defector() -> Strategy:
     return Strategy("defector", action)
 
 
+def strategy_alternator() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        return complement_action(own_decisions[-1]) if len(own_decisions) > 0 else Action.COOPERATING
+    return Strategy("alternator", action)
+
+
+def strategy_grudger() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        if Action.DEFECTING in opponent_decisions:
+            return Action.DEFECTING
+        else:
+            return Action.COOPERATING
+    return Strategy("grudger", action)
+
+
 def strategy_gandhi() -> Strategy:
     def action(own_decisions, opponent_decisions):
         return Action.COOPERATING
@@ -251,13 +266,15 @@ def strategy_pavlov_spooky() -> Strategy:
 name2strategy = {
     "defector": strategy_defector(),
     "gandhi": strategy_gandhi(),
-    "random": strategy_random(),
+#    "random": strategy_random(),
     "sophist": strategy_sophist(),
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
     "pavlov": strategy_pavlov(),
     "pavlovish": strategy_pavlovish(),
     "pavlov-spooky": strategy_pavlov_spooky(),
+    "alternator": strategy_alternator(),
+    "grudger": strategy_grudger(),
 }
 
 
