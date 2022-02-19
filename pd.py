@@ -355,7 +355,7 @@ def strategy_suspicious_pavlov() -> Strategy:
             return complement_action(own_decisions[-1])
         if len(own_decisions) > 0:
             return own_decisions[-1]
-        return Action.COOPERATING
+        return Action.DEFECTING
     return Strategy("suspicious pavlov", action)
 
 
