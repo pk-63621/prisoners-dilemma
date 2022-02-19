@@ -131,7 +131,7 @@ class PrisonersDilemmaTournament:
     def play_tournament(self, verbose=0, quiet=False):
         r = 0
         if not quiet:
-            print(f"Tournament participants: {', '.join(s.name for s in self.strategies)}")
+            print(f"Tournament participants[{len(self.strategies)}]: {', '.join(s.name for s in self.strategies)}")
         for strats in itertools.combinations(self.strategies, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{strat.name}", strat) for i,strat in enumerate(strats)]
