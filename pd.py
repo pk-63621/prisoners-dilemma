@@ -9,7 +9,7 @@ import itertools
 import math
 
 from enum import Enum
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import Callable, DefaultDict, Dict, List, Optional, Tuple, TypeVar, Union
 
 T = TypeVar('T')
@@ -439,10 +439,14 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     return []
 
 
-def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,int]):
-    ret: DefaultDict[str,int] = defaultdict(int)
+PairCountScore = namedtuple('PairCountScore', ['count', 'score'], defaults=[0,0])
+
+
+def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,PairCountScore]):
+    ret: DefaultDict[str,PairCountScore] = defaultdict(PairCountScore)
     for part, score in participant_results.items():
-        ret[part.strategy.name] += score
+        existing = ret[part.strategy.name]
+        ret[part.strategy.name] = PairCountScore(existing.count+1, existing.score+score)
     return ret
 
 
@@ -500,15 +504,16 @@ def main():
     final_result = tournament.play_tournament_with_evolution(verbose, quiet=quiet)
 
     strategy_results = participant_to_strategy_wise_results(final_result)
-    sorted_strategy_results = sorted(strategy_results.items(), key=lambda p: p[1])
+    sorted_strategy_results = sorted(strategy_results.items(), key=lambda p: p[1].score)
     if not quiet:
         print()
         print("Strategy wise result")
         print("--------------------")
     best_strats, best_score = [], 0
-    for strat,total_score in sorted_strategy_results:
+    for strat,count_score in sorted_strategy_results:
+        count, total_score = count_score
         if not quiet:
-            print("Strategy: {0:30} Result: {1:10}".format(strat, total_score))
+            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, count, total_score))
         if best_score < total_score:
             best_score = total_score
             best_strats = [strat]
