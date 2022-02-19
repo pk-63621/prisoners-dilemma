@@ -218,6 +218,14 @@ def strategy_tit_for_tat() -> Strategy:
     return Strategy("tit for tat", action)
 
 
+def strategy_suspicious_tit_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions):
+        if len(opponent_decisions) >= 1:
+            return opponent_decisions[-1]
+        return Action.DEFECTING
+    return Strategy("suspicious tit for tat", action)
+
+
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions):
         if (len(opponent_decisions) >= 2
@@ -270,6 +278,7 @@ name2strategy = {
     "sophist": strategy_sophist(),
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
+    "syspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
     "pavlov": strategy_pavlov(),
     "pavlovish": strategy_pavlovish(),
     "pavlov-spooky": strategy_pavlov_spooky(),
