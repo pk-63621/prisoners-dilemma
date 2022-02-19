@@ -42,6 +42,44 @@ class Strategy:
         return self.action(own_decisions, opponent_decisions)
 
 
+class StrategyResults:
+    def __init__(self):
+        self.dict: DefaultDict[str,List[int]] = defaultdict(list)
+        self.cache_invalidated = False
+        self.sorted_items: List[Tuple[str,List[int]]] = []
+
+    def add_score(self, name: str, score: int):
+        self.dict[name].append(score)
+        self.cache_invalidated = True
+
+    def get_sorted_items(self) -> List[Tuple[str,List[int]]]:
+        if self.cache_invalidated:
+            self.sorted_items = sorted(self.dict.items(), key=lambda p: sum(p[1]))
+            self.cache_invalidated = False
+        return self.sorted_items
+
+    def get_best_strategies_and_score(self) -> Tuple[List[str],int]:
+        sorted_items = self.get_sorted_items()
+        best_strats, best_score = [], 0
+        for strat,sl in sorted_items:
+            total_score = sum(sl)
+            if best_score < total_score:
+                best_score = total_score
+                best_strats = [strat]
+            elif best_score == total_score:
+                best_strats.append(strat)
+        return best_strats, best_score
+
+    def print(self):
+        print()
+        print("Strategy wise result")
+        print("--------------------")
+        for strat,sl in self.get_sorted_items():
+            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, len(sl), sum(sl)))
+        print("--------------------")
+        print()
+
+
 class Prisoner:
     def __init__(self, name: str, strategy: Strategy):
         assert strategy is not None
@@ -132,6 +170,45 @@ class TournamentParticipant:
         return TournamentParticipant(new_name, new_strategy)
 
 
+class TournamentParticipantResults:
+    def __init__(self):
+        self.dict: DefaultDict[TournamentParticipant,int] = defaultdict(int)
+        self.cache_invalidated = False
+        self.sorted_items: List[Tuple[TournamentParticipant,int]] = []
+
+    def add_score(self, name: TournamentParticipant, score: int):
+        self.dict[name] += score
+        self.cache_invalidated = True
+
+    def items(self):
+        return self.dict.items()
+
+    def len(self):
+        return len(self.dict)
+
+    def get_sorted_items(self) -> List[Tuple[TournamentParticipant,int]]:
+        if self.cache_invalidated:
+            self.sorted_items = sorted(self.dict.items(), key=lambda p: p[1])
+            self.cache_invalidated = False
+        return self.sorted_items
+
+    def print(self):
+        print()
+        print("Participant results")
+        print("-------------------")
+        for part,score in self.get_sorted_items():
+            print("\t{0:40} {1:10}".format(part.name, score))
+        print("------------------")
+        print()
+
+
+def participant_to_strategy_wise_results(participant_results: TournamentParticipantResults) -> StrategyResults:
+    ret = StrategyResults()
+    for part, score in participant_results.items():
+        ret.add_score(part.strategy.name, score)
+    return ret
+
+
 # all participants play against each other
 class PrisonersDilemmaTournament:
     def __init__(self, play_matrix, participants: List[TournamentParticipant],
@@ -146,9 +223,9 @@ class PrisonersDilemmaTournament:
         self.participants_per_game = participants_per_game
         self.rng_seed = rng_seed
 
-    def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
+    def play_tournament(self, verbose=0, quiet=False) -> TournamentParticipantResults:
         r = 0
-        outcome: DefaultDict[TournamentParticipant,int] = defaultdict(int)
+        outcome = TournamentParticipantResults()
         rng_seed = self.rng_seed
         if not quiet:
             print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
@@ -179,18 +256,14 @@ class PrisonersDilemmaTournament:
                 print(f"Result for Round #{r}:")
             for prisoner,participant in zip(prisoners,round_participants):
                 result = prisoner.get_result()
-                outcome[participant] += result
+                outcome.add_score(participant, result)
                 if verbose >= 2:
                     print(f"\t{participant.name: <{40}} {result}")
 
         if verbose >= 1:
-            print()
-            print("Tournament outcome")
-            sorted_results = sorted(outcome.items(), key=lambda p: p[1])
-            print("------------------")
-            for part,score in sorted_results:
-                print("\t{0:40} {1:10}".format(part.name, score))
-            print("------------------")
+            outcome.print()
+            strategy_results = participant_to_strategy_wise_results(outcome)
+            strategy_results.print()
         return outcome
 
 
@@ -211,7 +284,7 @@ class PrisonersDilemmaTournamentWithEvolution:
         self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
         self.rounds_of_evolution = rounds_of_evolution
 
-    def play_tournament(self, participants, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
+    def play_tournament(self, participants, verbose=0, quiet=False) -> TournamentParticipantResults:
         tournament = PrisonersDilemmaTournament(self.play_matrix, participants,
                                                 participants_per_game=self.participants_per_game,
                                                 iterations=self.iterations,
@@ -223,11 +296,11 @@ class PrisonersDilemmaTournamentWithEvolution:
 
     def eliminate_and_replicate(self,
                                 last_participants: List[TournamentParticipant],
-                                last_outcome: Dict[TournamentParticipant,int],
+                                last_outcome: TournamentParticipantResults,
                                 generation: int, verbose=0) -> List[TournamentParticipant]:
         assert last_outcome is not None
-        assert len(last_outcome) == len(last_participants)
-        last_outcome_sorted = sorted(last_outcome.items(), key=lambda p: p[1])
+        assert last_outcome.len() == len(last_participants)
+        last_outcome_sorted = last_outcome.get_sorted_items()
         nr = math.floor(len(last_participants)*self.fraction_eliminated_after_each_tournament)
         to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
         to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
@@ -244,7 +317,7 @@ class PrisonersDilemmaTournamentWithEvolution:
             print()
         return new_participants
 
-    def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[Dict[TournamentParticipant,int]]:
+    def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[TournamentParticipantResults]:
         last_outcome = None
         last_participants = self.orig_participants
         for i in range(self.rounds_of_evolution):
@@ -453,42 +526,6 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     return []
 
 
-class StrategyResults:
-    def __init__(self):
-        self.dict: DefaultDict[str,List[int]] = defaultdict(list)
-        self.cache_invalidated = False
-        self.sorted_items: List[Tuple[str,List[int]]] = []
-
-    def add_score(self, name: str, score: int):
-        self.dict[name].append(score)
-        self.cache_invalidated = True
-
-    def get_sorted_items(self) -> List[Tuple[str,List[int]]]:
-        if self.cache_invalidated:
-            self.sorted_items = sorted(self.dict.items(), key=lambda p: sum(p[1]))
-            self.cache_invalidated = False
-        return self.sorted_items
-
-    def get_best_strategies_and_score(self) -> Tuple[List[str],int]:
-        sorted_items = self.get_sorted_items()
-        best_strats, best_score = [], 0
-        for strat,sl in sorted_items:
-            total_score = sum(sl)
-            if best_score < total_score:
-                best_score = total_score
-                best_strats = [strat]
-            elif best_score == total_score:
-                best_strats.append(strat)
-        return best_strats, best_score
-
-
-def participant_to_strategy_wise_results(participant_results: Dict[TournamentParticipant,int]) -> StrategyResults:
-    ret = StrategyResults()
-    for part, score in participant_results.items():
-        ret.add_score(part.strategy.name, score)
-    return ret
-
-
 def str_to_argv(s: str) -> List[str]:
     return shlex.split(s)
 
@@ -548,13 +585,7 @@ def main():
     strategy_results = participant_to_strategy_wise_results(final_result)
     best_strats, best_score = strategy_results.get_best_strategies_and_score()
     if not quiet:
-        print()
-        print("Strategy wise result")
-        print("--------------------")
-        for strat,sl in strategy_results.get_sorted_items():
-            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, len(sl), sum(sl)))
-        print("--------------------")
-        print()
+        strategy_results.print()
     print(f"Best strategies are {', '.join(best_strats)}")
     print(f"Best score is {best_score}")
 
