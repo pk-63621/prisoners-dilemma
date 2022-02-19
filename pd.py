@@ -84,12 +84,13 @@ class Prisoner:
 
 
 class PrisonersDilemma:
-    def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=0.0):
+    def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=0.0, rng_seed=None):
         assert len(matrix) != 0
         assert len(list(matrix.items())[0][0]) == len(prisoners)
         self.play_matrix = matrix
         self.prisoners = prisoners
         self.noise_probability = noise
+        self.rngs = [random.Random(rng_seed) for i in range(len(prisoners))]
 
     def get_result(self, decisions):
         try:
@@ -98,13 +99,13 @@ class PrisonersDilemma:
             print(f"play_matrix is ill-formed!  Error {traceback.format_exc()}", file=sys.stderr)
             raise e
 
-    def get_noise(self):
-        random_floating_value = random.uniform(0, 1)
+    def get_noise_for_prisoner(self, idx: int):
+        random_floating_value = self.rngs[idx].uniform(0, 1)
         return random_floating_value < self.noise_probability
 
     def play_next_iteration(self) -> Tuple[Tuple[Action, ...], List[int]]:
         decisions             = tuple(prisoner.get_decision() for prisoner in self.prisoners)
-        decisions_after_noise = tuple(complement_action(d) if self.get_noise() else d for d in decisions)
+        decisions_after_noise = tuple(complement_action(d) if self.get_noise_for_prisoner(i) else d for i,d in enumerate(decisions))
         results = self.get_result(decisions_after_noise)
 
         for i in range(len(self.prisoners)):
@@ -133,12 +134,13 @@ class TournamentParticipant:
 
 # all participants play against each other
 class PrisonersDilemmaTournament:
-    def __init__(self, play_matrix, participants: List[TournamentParticipant], participants_per_game=2, iterations=10, noise_error_prob=0.0):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant], participants_per_game=2, iterations=10, noise_error_prob=0.0, rng_seed=None):
         self.play_matrix = play_matrix
         self.participants = participants
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
+        self.rng_seed = rng_seed
 
     def play_tournament(self, verbose=0, quiet=False) -> Dict[TournamentParticipant,int]:
         r = 0
@@ -148,7 +150,7 @@ class PrisonersDilemmaTournament:
         for round_participants in itertools.combinations(self.participants, self.participants_per_game):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
-            game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob)
+            game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob, self.rng_seed)
 
             if verbose >= 3:
                 print()
@@ -190,6 +192,7 @@ class PrisonersDilemmaTournamentWithEvolution:
                  participants_per_game=2,
                  iterations=10,
                  noise_error_prob=0.0,
+                 rng_seed=None,
                  fraction_eliminated_after_each_tournament=0.1,
                  rounds_of_evolution=2):
         self.play_matrix = play_matrix
@@ -197,6 +200,7 @@ class PrisonersDilemmaTournamentWithEvolution:
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
+        self.rng_seed = rng_seed
         self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
         self.rounds_of_evolution = rounds_of_evolution
 
@@ -204,7 +208,8 @@ class PrisonersDilemmaTournamentWithEvolution:
         tournament = PrisonersDilemmaTournament(self.play_matrix, participants,
                                                 participants_per_game=self.participants_per_game,
                                                 iterations=self.iterations,
-                                                noise_error_prob=self.noise_error_prob)
+                                                noise_error_prob=self.noise_error_prob,
+                                                rng_seed=self.rng_seed)
         return tournament.play_tournament(verbose=verbose, quiet=quiet)
 
     def eliminate_and_replicate(self,
@@ -462,6 +467,7 @@ def main():
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
+    parser.add_argument('--rng-seed', '-s', default=None, type=float, help='Seed to be passed to RNG')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['all'],
                         help=f"Strategies for prisoners.  Possible values are: all, all-[S1,S2,...], {', '.join(all_strategies_name())}")
@@ -479,6 +485,7 @@ def main():
     iterations = args.iterations
     rounds = args.rounds
     noise = args.error_prob
+    rng_seed = args.rng_seed
     strategies_name = args.strategies
 
     strategies = []
@@ -500,6 +507,7 @@ def main():
     tournament = PrisonersDilemmaTournamentWithEvolution(play_matrix, participants,
                                                          iterations=iterations,
                                                          noise_error_prob=noise,
+                                                         rng_seed=rng_seed,
                                                          rounds_of_evolution=rounds)
     final_result = tournament.play_tournament_with_evolution(verbose, quiet=quiet)
 
