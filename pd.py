@@ -283,9 +283,11 @@ class PrisonersDilemmaTournamentWithEvolution:
         assert last_outcome is not None
         assert last_outcome.len() == len(last_participants)
         last_outcome_sorted = last_outcome.get_sorted_items()
-        nr = math.floor(len(last_participants)*self.fraction_eliminated_after_each_tournament)
+        nr = math.ceil(len(last_participants)*self.fraction_eliminated_after_each_tournament)
+        assert nr != 0
         to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
         to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
+        assert len(to_be_eliminated) == len(to_be_replicated)
         new_participants = [p for p in last_participants if p.name not in to_be_eliminated]
         new_participants.extend([p.replicate(generation) for p in last_participants if p.name in to_be_replicated])
         if verbose >= 1:
