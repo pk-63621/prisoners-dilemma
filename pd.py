@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import shlex
 import argparse
 import random
 import sys
@@ -320,6 +321,10 @@ def get_strategies_by_name(s: str, random_if_not_found=False) -> List[Strategy]:
     return []
 
 
+def str_to_argv(s: str) -> List[str]:
+    return shlex.split(s)
+
+
 def main():
     parser = argparse.ArgumentParser()
     verbosity = parser.add_mutually_exclusive_group()
@@ -327,9 +332,15 @@ def main():
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
-    parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='+', default=['defector','defector'], help='Strategies for prisoners')
+    parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
+    parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['defector','defector'], help='Strategies for prisoners')
     args = parser.parse_args()
 
+    config = args.config
+    if config is not None:
+        config_str = config.read()
+        # override args
+        args = parser.parse_args(str_to_argv(config_str))
     quiet = args.quiet
     verbose = args.verbose
     iterations = args.iterations
