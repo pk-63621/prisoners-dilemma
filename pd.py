@@ -9,7 +9,7 @@ import itertools
 import math
 
 from enum import Enum
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from typing import Callable, DefaultDict, Dict, List, Optional, Tuple, TypeVar, Union
 
 T = TypeVar('T')
@@ -134,7 +134,11 @@ class TournamentParticipant:
 
 # all participants play against each other
 class PrisonersDilemmaTournament:
-    def __init__(self, play_matrix, participants: List[TournamentParticipant], participants_per_game=2, iterations=10, noise_error_prob=0.0, rng_seed=None):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant],
+                 participants_per_game=2,
+                 iterations=10,
+                 noise_error_prob=0.0,
+                 rng_seed=None):
         self.play_matrix = play_matrix
         self.participants = participants
         self.iterations = iterations
