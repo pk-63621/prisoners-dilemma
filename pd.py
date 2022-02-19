@@ -278,7 +278,7 @@ name2strategy = {
 }
 
 
-def all_strategies() -> List[Strategy]:
+def all_strategies():
     return name2strategy.values()
 
 
