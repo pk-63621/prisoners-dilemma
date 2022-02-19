@@ -468,7 +468,7 @@ def strategy_pavlovish() -> Strategy:
 
 
 def strategy_suspicious_pavlovish() -> Strategy:
-    def action(own_decisions, opponent_decisions):
+    def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
         if len(own_decisions) > 0:
