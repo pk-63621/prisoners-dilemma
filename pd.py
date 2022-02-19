@@ -452,7 +452,7 @@ def main():
     verbosity.add_argument('--quiet', '-q', action='store_true', help='Just print final result')
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
-    parser.add_argument('--rounds', '-r', default=2, type=int, help='Rounds of evolution')
+    parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['defector','defector'], help='Strategies for prisoners')
