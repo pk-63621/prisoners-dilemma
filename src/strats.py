@@ -216,11 +216,11 @@ def strategy_two_tits_for_tat() -> Strategy:
 
 def strategy_suspicious_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(own_decisions) > 0:
-            if len(opponent_decisions) == 1:
-                return opponent_decisions[-1]
-            return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
-        return Action.DEFECTING
+        if len(own_decision) < 1:
+            return Action.DEFECTING
+        if len(opponent_decisions) == 1:
+            return opponent_decisions[-1]
+        return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
     return Strategy("suspicious-two-tits-for-tat", action)
 
 
