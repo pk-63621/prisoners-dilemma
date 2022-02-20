@@ -1,3 +1,4 @@
+* Need a way for user to play with strat to check it if it works as supposed
 * Webui to run and display results on web page
 * Increase strats to 25
 * Create evolution using moran process

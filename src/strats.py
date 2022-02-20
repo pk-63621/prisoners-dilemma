@@ -194,6 +194,17 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
     return Strategy("forgiving tit for tat", action)
 
 
+def strategy_firm_but_fair() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) == 0 or opponent_decisions[-1] == own_decisions[-1]:
+            return Action.COOPERATING
+        elif has_defection(local_state, opponent_decisions):
+            return Action.DEFECTING
+        else:
+            return Action.COOPERATING
+    return Strategy("firm but fair", action)
+
+
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # switch strategy if opponent defected
