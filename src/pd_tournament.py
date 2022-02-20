@@ -423,7 +423,10 @@ def main():
     best_strats, best_score = strategy_results.get_best_strategies_and_score()
     if not quiet:
         strategy_results.print()
-    print(f"Best strategies are {', '.join(best_strats)}")
+    if len(best_strats) > 1:
+        print(f"Best strategies are {', '.join(best_strats)}")
+    else:
+        print(f"Best strategy is {', '.join(best_strats)}, congrats")
     print(f"Best score is {best_score}")
 
 
