@@ -269,11 +269,24 @@ def strategy_hard_tit_for_tat() -> Strategy:
     return Strategy("hard-tit-for-tat", action)
 
 
+def strategy_soft_grudger() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(opponent_decisions) > 0 and opponent_decisions[-1] == Action.DEFECTING:
+            local_state["next_decisions"] = [Action.DEFECTING]*4 + [Action.COOPERATING]*2
+        next_decisions = local_state.get("next_decisions")
+        if next_decisions != None and len(next_decisions) > 0:
+            local_state["next_decisions"] = next_decisions[1:]
+            return next_decisions[0]
+        return Action.COOPERATING
+    return Strategy("soft-grudger", action)
+
+
 name2strategy = {
     "defector": strategy_defector(),
     "hate-opponent": strategy_hate_opponent(),
-    "grudger": strategy_grudger(),
     "angry-grudger": strategy_angry_grudger(),
+    "grudger": strategy_grudger(),
+    "soft-grudger": strategy_soft_grudger(),
     "suspicious-pavlovish": strategy_suspicious_pavlovish(),
     "suspicious-pavlov-spooky": strategy_suspicious_pavlov_spooky(),
     "suspicious-pavlov": strategy_suspicious_pavlov(),
