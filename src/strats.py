@@ -237,24 +237,59 @@ def strategy_suspicious_pavlov_spooky() -> Strategy:
     return Strategy("suspicious-pavlov-spooky", action)
 
 
+def strategy_two_tits_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) > 0:
+            if own_decisions[-1] == Action.DEFECTING:
+                return Action.DEFECTING
+            else:
+                return opponent_decisions[-1]
+        return Action.COOPERATING
+    return Strategy("two-tits-for-tat", action)
+
+
+def strategy_suspicious_two_tits_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) > 0:
+            if len(opponent_decisions) == 1:
+                return opponent_decisions[-1]
+            if own_decisions[-1] == Action.DEFECTING:
+                return Action.DEFECTING
+            else:
+                return opponent_decisions[-1]
+        return Action.DEFECTING
+    return Strategy("suspicious-two-tits-for-tat", action)
+
+
+def strategy_hard_tit_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(opponent_decisions) >= 3 and Action.DEFECTING in opponent_decisions[-3:]:
+            return Action.DEFECTING
+        return Action.COOPERATING
+    return Strategy("hard-tit-for-tat", action)
+
+
 name2strategy = {
     "defector": strategy_defector(),
-    "gandhi": strategy_gandhi(),
-    "random": strategy_random(),
-    "sophist": strategy_sophist(),
-    "tit-for-tat": strategy_tit_for_tat(),
-    "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
-    "suspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
-    "pavlov": strategy_pavlov(),
-    "pavlovish": strategy_pavlovish(),
-    "pavlov-spooky": strategy_pavlov_spooky(),
-    "alternator": strategy_alternator(),
-    "grudger": strategy_grudger(),
     "hate-opponent": strategy_hate_opponent(),
+    "grudger": strategy_grudger(),
     "angry-grudger": strategy_angry_grudger(),
-    "suspicious-sophist": strategy_suspicious_sophist(),
-    "suspicious-pavlov": strategy_suspicious_pavlov(),
     "suspicious-pavlovish": strategy_suspicious_pavlovish(),
     "suspicious-pavlov-spooky": strategy_suspicious_pavlov_spooky(),
+    "suspicious-pavlov": strategy_suspicious_pavlov(),
+    "suspicious-sophist": strategy_suspicious_sophist(),
+    "suspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
+    "random": strategy_random(),
+    "alternator": strategy_alternator(),
+    "hard-tit-for-tat": strategy_hard_tit_for_tat(),
+    "suspicious-two-tits-for-tat": strategy_suspicious_two_tits_for_tat(),
+    "two-tits-for-tat": strategy_two_tits_for_tat(),
     "firm-but-fair": strategy_firm_but_fair(),
+    "sophist": strategy_sophist(),
+    "pavlov": strategy_pavlov(),
+    "pavlov-spooky": strategy_pavlov_spooky(),
+    "pavlovish": strategy_pavlovish(),
+    "tit-for-tat": strategy_tit_for_tat(),
+    "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
+    "gandhi": strategy_gandhi(),
 }
