@@ -7,15 +7,11 @@ from typing import Callable, Dict, List
 
 
 class Action(Enum):
-    DEFECTING = 'Defecting'
-    COOPERATING = 'Cooperating'
+    DEFECTING, COOPERATING = 'Defecting', 'Cooperating'
 
 
 def complement_action(a: Action) -> Action:
-    if a == Action.DEFECTING:
-        return Action.COOPERATING
-    else:
-        return Action.DEFECTING
+    return Action.COOPERATING if a == Action.DEFECTING else Action.DEFECTING
 
 
 class Strategy:
@@ -67,9 +63,7 @@ def has_defection(local_state, opponent_decisions):
 
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if has_defection(local_state, opponent_decisions):
-            return Action.DEFECTING
-        return Action.COOPERATING
+        return Action.DEFECTING if has_defection(local_state, opponent_decisions) else Action.COOPERATING
     return Strategy("grudger", action)
 
 
@@ -77,9 +71,7 @@ def strategy_angry_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) == 0:
             return Action.DEFECTING
-        if has_defection(local_state, opponent_decisions):
-            return Action.DEFECTING
-        return Action.COOPERATING
+        return Action.DEFECTING if has_defection(local_state, opponent_decisions) else Action.COOPERATING
     return Strategy("angry grudger", action)
 
 
@@ -109,17 +101,14 @@ def get_coop_and_defect_count(local_state, opponent_decisions):
                 cnt_def += 1
             else:
                 cnt_coop += 1
-    local_state['cnt_def'] = cnt_def
-    local_state['cnt_coop'] = cnt_coop
+    local_state['cnt_def'], local_state['cnt_coop'] = cnt_def, cnt_coop
     return cnt_coop, cnt_def
 
 
 def strategy_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_def > cnt_coop:
-            return Action.DEFECTING
-        return Action.COOPERATING
+        return Action.DEFECTING if cnt_def > cnt_coop else Action.COOPERATING
     return Strategy("sophist", action)
 
 
@@ -128,33 +117,25 @@ def strategy_suspicious_sophist() -> Strategy:
         if len(opponent_decisions) == 0:
             return Action.DEFECTING
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_def >= cnt_coop:
-            return Action.DEFECTING
-        return Action.COOPERATING
+        return Action.DEFECTING if cnt_def >= cnt_coop else Action.COOPERATING
     return Strategy("suspicious-sophist", action)
 
 
 def strategy_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(opponent_decisions) >= 1:
-            return opponent_decisions[-1]
-        return Action.COOPERATING
+        return opponent_decisions[-1] if len(opponent_decisions) >= 1 else Action.COOPERATING
     return Strategy("tit-for-tat", action)
 
 
 def strategy_suspicious_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(opponent_decisions) >= 1:
-            return opponent_decisions[-1]
-        return Action.DEFECTING
+        return opponent_decisions[-1] if len(opponent_decisions) >= 1 else Action.DEFECTING
     return Strategy("suspicious-tit-for-tat", action)
 
 
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(opponent_decisions) >= 2 and opponent_decisions[-1] == opponent_decisions[-2]:
-            return opponent_decisions[-1]
-        return Action.COOPERATING
+        return opponent_decisions[-1] if len(opponent_decisions) >= 2 and opponent_decisions[-1] == opponent_decisions[-2] else Action.COOPERATING
     return Strategy("forgiving-tit-for-tat", action)
 
 
@@ -175,9 +156,7 @@ def strategy_pavlov() -> Strategy:
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.COOPERATING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
     return Strategy("pavlov", action)
 
 
@@ -187,9 +166,7 @@ def strategy_suspicious_pavlov() -> Strategy:
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.DEFECTING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
     return Strategy("suspicious-pavlov", action)
 
 
@@ -199,9 +176,7 @@ def strategy_pavlovish() -> Strategy:
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.COOPERATING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
     return Strategy("pavlovish", action)
 
 
@@ -209,9 +184,7 @@ def strategy_suspicious_pavlovish() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.DEFECTING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
     return Strategy("suspicious-pavlovish", action)
 
 
@@ -221,9 +194,7 @@ def strategy_pavlov_spooky() -> Strategy:
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.COOPERATING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
     return Strategy("pavlov-spooky", action)
 
 
@@ -231,19 +202,14 @@ def strategy_suspicious_pavlov_spooky() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
-        return Action.DEFECTING
+        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
     return Strategy("suspicious-pavlov-spooky", action)
 
 
 def strategy_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(own_decisions) > 0:
-            if own_decisions[-1] == Action.DEFECTING:
-                return Action.DEFECTING
-            else:
-                return opponent_decisions[-1]
+            return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
         return Action.COOPERATING
     return Strategy("two-tits-for-tat", action)
 
@@ -253,19 +219,14 @@ def strategy_suspicious_two_tits_for_tat() -> Strategy:
         if len(own_decisions) > 0:
             if len(opponent_decisions) == 1:
                 return opponent_decisions[-1]
-            if own_decisions[-1] == Action.DEFECTING:
-                return Action.DEFECTING
-            else:
-                return opponent_decisions[-1]
+            return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
         return Action.DEFECTING
     return Strategy("suspicious-two-tits-for-tat", action)
 
 
 def strategy_hard_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(opponent_decisions) >= 3 and Action.DEFECTING in opponent_decisions[-3:]:
-            return Action.DEFECTING
-        return Action.COOPERATING
+        return Action.DEFECTING if len(opponent_decisions) >= 3 and Action.DEFECTING in opponent_decisions[-3:] else Action.COOPERATING
     return Strategy("hard-tit-for-tat", action)
 
 
@@ -284,9 +245,7 @@ def strategy_soft_grudger() -> Strategy:
 def strategy_hard_majority() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_coop > cnt_def:
-            Action.COOPERATING
-        return Action.DEFECTING
+        return Action.COOPERATING if cnt_coop > cnt_def else Action.DEFECTING
     return Strategy("hard-majority", action)
 
 
