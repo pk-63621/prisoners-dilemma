@@ -21,6 +21,43 @@ def unpack_tuple_if_singleton(a: Tuple[T,...]) -> Union[Tuple[T,...],T]:
     return a
 
 
+class StrategyResults:
+    def __init__(self):
+        self.dict: DefaultDict[str,List[int]] = defaultdict(list)
+        self.cache_invalidated = False
+        self.sorted_items: List[Tuple[str,List[int]]] = []
+
+    def add_score(self, name: str, score: int):
+        self.dict[name].append(score)
+        self.cache_invalidated = True
+
+    def get_sorted_items(self) -> List[Tuple[str,List[int]]]:
+        if self.cache_invalidated:
+            self.sorted_items = sorted(self.dict.items(), key=lambda p: sum(p[1]))
+            self.cache_invalidated = False
+        return self.sorted_items
+
+    def get_best_strategies_and_score(self) -> Tuple[List[str],int]:
+        best_strats, best_score = [], 0
+        for strat,sl in self.get_sorted_items():
+            total_score = sum(sl)
+            if best_score < total_score:
+                best_score = total_score
+                best_strats = [strat]
+            elif best_score == total_score:
+                best_strats.append(strat)
+        return best_strats, best_score
+
+    def print(self):
+        print()
+        print("Strategy wise result")
+        print("--------------------")
+        for strat,sl in self.get_sorted_items():
+            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, len(sl), sum(sl)))
+        print("--------------------")
+        print()
+
+
 class Prisoner:
     def __init__(self, name: str, strategy: Strategy):
         assert strategy is not None
@@ -257,31 +294,6 @@ class PrisonersDilemmaTournamentWithEvolution:
             last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, verbose)
         assert last_outcome is not None
         return last_outcome
-
-
-# strategies -- add to name2strategy if adding new strategy
-
-
-
-name2strategy = {
-    "defector": strategy_defector(),
-    "gandhi": strategy_gandhi(),
-    "random": strategy_random(),
-    "sophist": strategy_sophist(),
-    "tit-for-tat": strategy_tit_for_tat(),
-    "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
-    "suspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
-    "pavlov": strategy_pavlov(),
-    "pavlovish": strategy_pavlovish(),
-    "pavlov-spooky": strategy_pavlov_spooky(),
-    "alternator": strategy_alternator(),
-    "grudger": strategy_grudger(),
-    "hate-opponent": strategy_hate_opponent(),
-    "angry-grudger": strategy_angry_grudger(),
-    "suspicious-sophist": strategy_suspicious_sophist(),
-    "suspicious-pavlov": strategy_suspicious_pavlov(),
-    "suspicious-pavlovish": strategy_suspicious_pavlovish(),
-}
 
 
 def all_strategies_name():

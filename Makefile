@@ -1,4 +1,4 @@
-SRCS := src/pd.py
+SRCS := src
 
 all: mypy flake8
 
