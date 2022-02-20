@@ -290,6 +290,23 @@ def strategy_hard_majority() -> Strategy:
     return Strategy("hard-majority", action)
 
 
+def strategy_prober() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) == 0:
+            local_state["startup_decisions"] = [Action.DEFECTING] + [Action.COOPERATING]*2
+            local_state["other_person"] = []
+        startup_decisions = local_state.get("startup_decisions")
+        if startup_decisions is not None and len(startup_decisions) > 0:
+            local_state["startup_decisions"] = startup_decisions[1:]
+            return startup_decisions[0]
+        if len(opponent_decisions) == 3 and opponent_decisions[-1] == opponent_decisions[-2] and opponent_decisions[-1] == Action.COOPERATING:
+            return Action.DEFECTING
+        else:
+            return opponent_decisions[-1]
+
+    return Strategy("prober", action)
+
+
 name2strategy = {
     "defector": strategy_defector(),
     "hate-opponent": strategy_hate_opponent(),
@@ -305,6 +322,7 @@ name2strategy = {
     "random": strategy_random(),
     "alternator": strategy_alternator(),
     "hard-tit-for-tat": strategy_hard_tit_for_tat(),
+    "prober": strategy_prober(),
     "suspicious-two-tits-for-tat": strategy_suspicious_two_tits_for_tat(),
     "two-tits-for-tat": strategy_two_tits_for_tat(),
     "firm-but-fair": strategy_firm_but_fair(),
