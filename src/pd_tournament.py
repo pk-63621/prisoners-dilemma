@@ -7,9 +7,12 @@ import itertools
 import math
 
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import DefaultDict, Dict, List, Optional, Tuple, TypeVar, Union
 
 from strats import *
+
+
+T = TypeVar('T')
 
 
 def unpack_tuple_if_singleton(a: Tuple[T,...]) -> Union[Tuple[T,...],T]:
@@ -47,6 +50,7 @@ class Prisoner:
 class PrisonersDilemma:
     def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=0.0, rng_seed=None):
         assert len(matrix) != 0
+        assert len(prisoners) >= 2
         assert len(list(matrix.items())[0][0]) == len(prisoners)
         self.play_matrix = matrix
         self.prisoners = prisoners
@@ -57,11 +61,10 @@ class PrisonersDilemma:
         return self.play_matrix[decisions]
 
     def noise_occurred(self):
-        random_floating_value = self.rng.uniform(0, 1)
-        return random_floating_value < self.noise_probability
+        return self.rng.uniform(0, 1) < self.noise_probability
 
     def play_next_iteration(self) -> Tuple[Tuple[Action, ...], List[int]]:
-        decisions             = tuple(prisoner.get_decision() for prisoner in self.prisoners)
+        decisions             = tuple(p.get_decision() for p in self.prisoners)
         decisions_after_noise = tuple(complement_action(d) if self.noise_occurred() else d for i,d in enumerate(decisions))
         results = self.get_result(decisions_after_noise)
 
@@ -80,6 +83,7 @@ class PrisonersDilemma:
 
 class TournamentParticipant:
     def __init__(self, name: str, strategy: Strategy):
+        assert strategy is not None
         self.name = name
         self.strategy = strategy
 
@@ -135,20 +139,23 @@ class PrisonersDilemmaTournament:
                  iterations=10,
                  noise_error_prob=0.0,
                  rng_seed=None):
+        assert len(participants) >= 2
+        assert participants_per_game >= 2
+        assert iterations >= 1
         self.play_matrix = play_matrix
         self.participants = participants
+        self.participants_per_game = participants_per_game
         self.iterations = iterations
         self.noise_error_prob = noise_error_prob
-        self.participants_per_game = participants_per_game
         self.rng_seed = rng_seed
 
     def play_tournament(self, verbose=0, quiet=False) -> TournamentParticipantResults:
-        r = 0
+        # outcome accumulated across all rounds
         outcome = TournamentParticipantResults()
         rng_seed = self.rng_seed
         if not quiet:
             print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
-        for round_participants in itertools.combinations(self.participants, self.participants_per_game):
+        for r, round_participants in enumerate(itertools.combinations(self.participants, self.participants_per_game)):
             r += 1
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob, rng_seed)
@@ -191,9 +198,11 @@ class PrisonersDilemmaTournamentWithEvolution:
                  participants_per_game=2,
                  iterations=10,
                  noise_error_prob=0.0,
-                 rng_seed=None,
+                 rng_seed: Optional[int]=None,
                  fraction_eliminated_after_each_tournament=0.1,
                  rounds_of_evolution=2):
+        assert fraction_eliminated_after_each_tournament > 0.0
+        assert rounds_of_evolution >= 1
         self.play_matrix = play_matrix
         self.orig_participants = participants
         self.iterations = iterations
@@ -217,10 +226,11 @@ class PrisonersDilemmaTournamentWithEvolution:
                                 last_participants: List[TournamentParticipant],
                                 last_outcome: TournamentParticipantResults,
                                 generation: int, verbose=0) -> List[TournamentParticipant]:
+        len_last_participants = len(last_participants)
         assert last_outcome is not None
-        assert last_outcome.len() == len(last_participants)
+        assert last_outcome.len() == len_last_participants
         last_outcome_sorted = last_outcome.get_sorted_items()
-        nr = math.ceil(len(last_participants)*self.fraction_eliminated_after_each_tournament)
+        nr = math.ceil(len_last_participants*self.fraction_eliminated_after_each_tournament)
         assert nr != 0
         to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
         to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
@@ -236,6 +246,7 @@ class PrisonersDilemmaTournamentWithEvolution:
             print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
             print(f"*** Replicated: {', '.join(to_be_replicated)}")
             print()
+        assert len(new_participants) == len_last_participants
         return new_participants
 
     def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[TournamentParticipantResults]:
@@ -244,7 +255,12 @@ class PrisonersDilemmaTournamentWithEvolution:
         for i in range(self.rounds_of_evolution):
             last_outcome = self.play_tournament(last_participants, verbose, quiet)
             last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, verbose)
+        assert last_outcome is not None
         return last_outcome
+
+
+# strategies -- add to name2strategy if adding new strategy
+
 
 
 name2strategy = {
@@ -291,6 +307,18 @@ def random_strategy() -> Strategy:
 
 
 def get_strategies_by_name(sc: str, random_if_not_found=False) -> List[Strategy]:
+    """
+     sc is assumed to be of the form:
+      sc       ::= s | s*N
+      s        ::= STRATEGY | "all" | "all-"ls
+      ls       ::= STRATEGY | ls","STRATEGY
+
+      N in { positive-integers }
+      STRATEGY in { strategies }
+
+      if random_if_not_found is True then an invalid strategy is replaced by a randomly chosen strategy
+                                     otherwise silently ignored
+    """
     def decode_into_strategy_and_count(sc):
         ss = sc.split('*')
         if len(ss) == 2 and ss[1].isdigit():

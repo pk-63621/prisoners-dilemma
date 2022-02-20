@@ -6,8 +6,6 @@ from enum import Enum
 from collections import defaultdict
 from typing import Callable, DefaultDict, Dict, List, Tuple, TypeVar
 
-T = TypeVar('T')
-
 
 class Action(Enum):
     DEFECTING = 'Defecting'
@@ -22,15 +20,20 @@ def complement_action(a: Action) -> Action:
 
 
 class Strategy:
-    def __init__(self, name, action):
-        self.name: str = name
-        self.action: Callable = action
+    """
+    prototype for action:
+    ---------------------
+      action(self, own_decisions: List[Action], opponent_decisions: List[Action], local_state: Dict) -> Action
 
-    def action(self,
-               own_decisions: List[Action],
-               opponent_decisions: List[Action],
-               local_state: Dict) -> Action:
-        return self.action(own_decisions, opponent_decisions, local_state)
+    local_state can be used arbitrarily by the action and should remain
+    persistent across all iterations in a game
+    """
+    def __init__(self,
+                 name: str,
+                 action: Callable[[List[Action],List[Action],Dict], Action]):
+        assert action is not None
+        self.name = name
+        self.action = action
 
 
 class StrategyResults:
@@ -50,9 +53,8 @@ class StrategyResults:
         return self.sorted_items
 
     def get_best_strategies_and_score(self) -> Tuple[List[str],int]:
-        sorted_items = self.get_sorted_items()
         best_strats, best_score = [], 0
-        for strat,sl in sorted_items:
+        for strat,sl in self.get_sorted_items():
             total_score = sum(sl)
             if best_score < total_score:
                 best_score = total_score
