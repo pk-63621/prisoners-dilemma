@@ -281,12 +281,22 @@ def strategy_soft_grudger() -> Strategy:
     return Strategy("soft-grudger", action)
 
 
+def strategy_hard_majority() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
+        if cnt_coop > cnt_def:
+            Action.COOPERATING
+        return Action.DEFECTING
+    return Strategy("hard-majority", action)
+
+
 name2strategy = {
     "defector": strategy_defector(),
     "hate-opponent": strategy_hate_opponent(),
     "angry-grudger": strategy_angry_grudger(),
     "grudger": strategy_grudger(),
     "soft-grudger": strategy_soft_grudger(),
+    "hard-majority":strategy_hard_majority(),
     "suspicious-pavlovish": strategy_suspicious_pavlovish(),
     "suspicious-pavlov-spooky": strategy_suspicious_pavlov_spooky(),
     "suspicious-pavlov": strategy_suspicious_pavlov(),
