@@ -274,7 +274,7 @@ def strategy_soft_grudger() -> Strategy:
         if len(opponent_decisions) > 0 and opponent_decisions[-1] == Action.DEFECTING:
             local_state["next_decisions"] = [Action.DEFECTING]*4 + [Action.COOPERATING]*2
         next_decisions = local_state.get("next_decisions")
-        if next_decisions != None and len(next_decisions) > 0:
+        if next_decisions is not None and len(next_decisions) > 0:
             local_state["next_decisions"] = next_decisions[1:]
             return next_decisions[0]
         return Action.COOPERATING
