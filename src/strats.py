@@ -294,7 +294,6 @@ def strategy_prober() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(own_decisions) == 0:
             local_state["startup_decisions"] = [Action.DEFECTING] + [Action.COOPERATING]*2
-            local_state["other_person"] = []
         startup_decisions = local_state.get("startup_decisions")
         if startup_decisions is not None and len(startup_decisions) > 0:
             local_state["startup_decisions"] = startup_decisions[1:]
@@ -303,8 +302,22 @@ def strategy_prober() -> Strategy:
             return Action.DEFECTING
         else:
             return opponent_decisions[-1]
-
     return Strategy("prober", action)
+
+
+def strategy_handshake() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) == 0:
+            local_state["startup_decisions"] = [Action.DEFECTING] + [Action.COOPERATING]
+        startup_decisions = local_state.get("startup_decisions")
+        if startup_decisions is not None and len(startup_decisions) > 0:
+            local_state["startup_decisions"] = startup_decisions[1:]
+            return startup_decisions[0]
+        if len(opponent_decisions) == 2 and opponent_decisions[0] == Action.DEFECTING and opponent_decisions[1] == Action.COOPERATING:
+            return Action.COOPERATING
+        else:
+            return Action.DEFECTING
+    return Strategy("handshake", action)
 
 
 name2strategy = {
@@ -322,6 +335,7 @@ name2strategy = {
     "random": strategy_random(),
     "alternator": strategy_alternator(),
     "hard-tit-for-tat": strategy_hard_tit_for_tat(),
+    "handshake": strategy_handshake(),
     "prober": strategy_prober(),
     "suspicious-two-tits-for-tat": strategy_suspicious_two_tits_for_tat(),
     "two-tits-for-tat": strategy_two_tits_for_tat(),
