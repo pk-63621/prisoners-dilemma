@@ -279,6 +279,18 @@ def strategy_handshake() -> Strategy:
     return Strategy("handshake", action)
 
 
+def strategy_user() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(opponent_decisions) >= 1:
+            print(f"Opponent's last move: {opponent_decisions[-1].value}")
+        move = input("Your move: ")
+        if move.lower().startswith("c"):
+            return Action.COOPERATING
+        else:
+            return Action.DEFECTING
+    return Strategy("user", action)
+
+
 name2strategy = {
     "defector": strategy_defector(),
     "hate-opponent": strategy_hate_opponent(),
@@ -306,4 +318,5 @@ name2strategy = {
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
     "gandhi": strategy_gandhi(),
+    "user": strategy_user(),
 }
