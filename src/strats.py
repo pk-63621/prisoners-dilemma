@@ -109,14 +109,13 @@ def strategy_sophist(suspicious=False) -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
         return Action.DEFECTING if cnt_def > cnt_coop else complement_action(Action.COOPERATING, suspicious)
-    return Strategy("sophist", action)
+    return Strategy("suspicious-sophist", action) if suspicious else Strategy("sophist", action)
 
 
 def strategy_tit_for_tat(suspicious=False) -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         return opponent_decisions[-1] if len(opponent_decisions) >= 1 else complement_action(Action.COOPERATING, suspicious)
-    return Strategy("tit-for-tat", action)
-
+    return Strategy("suspicious-tit-for-tat", action) if suspicious else Strategy("tit-for-tat", action)
 
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
@@ -142,7 +141,7 @@ def strategy_pavlov(suspicious=False) -> Strategy:
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
         return own_decisions[-1] if len(own_decisions) > 0 else complement_action(Action.COOPERATING, suspicious)
-    return Strategy("pavlov", action)
+    return Strategy("suspicious-pavlov", action) if suspicious else Strategy("pavlov", action)
 
 
 def strategy_pavlovish(suspicious=False) -> Strategy:
@@ -152,7 +151,7 @@ def strategy_pavlovish(suspicious=False) -> Strategy:
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
         return own_decisions[-1] if len(own_decisions) > 0 else complement_action(Action.COOPERATING, suspicious)
-    return Strategy("pavlovish", action)
+    return Strategy("suspicious-pavlovish", action) if suspicious else Strategy("pavlovish", action)
 
 
 def strategy_pavlov_spooky(suspicious=False) -> Strategy:
@@ -162,15 +161,24 @@ def strategy_pavlov_spooky(suspicious=False) -> Strategy:
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
         return own_decisions[-1] if len(own_decisions) > 0 else complement_action(Action.COOPERATING, suspicious)
-    return Strategy("pavlov-spooky", action)
+    return Strategy("suspicious-pavlov-spooky", action) if suspicious else Strategy("pavlov-spooky", action)
 
-
-def strategy_two_tits_for_tat(suspicious=False) -> Strategy:
+def strategy_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         if len(own_decisions) > 0:
             return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
-        return complement_action(Action.COOPERATING, suspicious)
+        return Action.COOPERATING
     return Strategy("two-tits-for-tat", action)
+
+
+def strategy_suspicious_two_tits_for_tat() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        if len(own_decisions) < 1:
+            return Action.DEFECTING
+        if len(opponent_decisions) == 1:
+            return opponent_decisions[-1]
+        return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
+    return Strategy("suspicious-two-tits-for-tat", action)
 
 
 def strategy_hard_tit_for_tat() -> Strategy:
@@ -245,7 +253,7 @@ name2strategy = {
     "hard-tit-for-tat": strategy_hard_tit_for_tat(),
     "handshake": strategy_handshake(),
     "prober": strategy_prober(),
-    "suspicious-two-tits-for-tat": strategy_two_tits_for_tat(True),
+    "suspicious-two-tits-for-tat": strategy_suspicious_two_tits_for_tat(),
     "two-tits-for-tat": strategy_two_tits_for_tat(),
     "firm-but-fair": strategy_firm_but_fair(),
     "sophist": strategy_sophist(),
