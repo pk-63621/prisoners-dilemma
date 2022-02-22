@@ -165,7 +165,7 @@ def strategy_suspicious_sophist() -> Strategy:
             return Action.DEFECTING
 
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_def > cnt_coop:
+        if cnt_def >= cnt_coop:
             return Action.DEFECTING
         else:
             return Action.COOPERATING
@@ -235,42 +235,62 @@ def strategy_firm_but_fair() -> Strategy:
 
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
         # switch strategy if opponent defected
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
+        else:
+            return own_decisions[-1]
 
     return Strategy("pavlov", action)
 
 
 def strategy_suspicious_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.DEFECTING
+
         # switch strategy if opponent defected
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
+        else:
+            return own_decisions[-1]
 
     return Strategy("suspicious-pavlov", action)
 
 
 def strategy_pavlovish() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
         # defect if opponent defected and we didn't
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
+        else:
+            return own_decisions[-1]
 
     return Strategy("pavlovish", action)
 
 
 def strategy_suspicious_pavlovish() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.DEFECTING
+
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
             return Action.DEFECTING
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
+        else:
+            return own_decisions[-1]
 
     return Strategy("suspicious-pavlovish", action)
 
