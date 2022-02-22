@@ -165,7 +165,7 @@ def strategy_suspicious_sophist() -> Strategy:
             return Action.DEFECTING
 
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_def >= cnt_coop:
+        if cnt_def > cnt_coop:
             return Action.DEFECTING
         else:
             return Action.COOPERATING
