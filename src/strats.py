@@ -277,48 +277,92 @@ def strategy_suspicious_pavlovish() -> Strategy:
 
 def strategy_pavlov_spooky() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
         # switch strategy if opponent's action didn't match ours
         # otherwise keep doing whatever we did last time
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.COOPERATING
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        else: 
+            print("Wrong config")
+            return None
+
     return Strategy("pavlov-spooky", action)
 
 
 def strategy_suspicious_pavlov_spooky() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.DEFECTING
+
         if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        return own_decisions[-1] if len(own_decisions) > 0 else Action.DEFECTING
+        if len(own_decisions) > 0:
+            return own_decisions[-1]
+        else:
+            print("Wrong config")
+            return None
+
     return Strategy("suspicious-pavlov-spooky", action)
 
 
 def strategy_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        if len(own_decisions) > 0:
-            return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
-        return Action.COOPERATING
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
+        if len(own_decisions) > 0 and own_decisions[-1] == Action.DEFECTING:
+            return Action.DEFECTING
+        else:
+            return opponent_decisions[-1]
+
     return Strategy("two-tits-for-tat", action)
 
 
 def strategy_suspicious_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
         if len(own_decisions) < 1:
             return Action.DEFECTING
+
+        # second round case
         if len(opponent_decisions) == 1:
             return opponent_decisions[-1]
-        return Action.DEFECTING if own_decisions[-1] == Action.DEFECTING else opponent_decisions[-1]
+
+        if own_decisions[-1] == Action.DEFECTING:
+            return Action.DEFECTING
+        else:
+            return opponent_decisions[-1]
+
     return Strategy("suspicious-two-tits-for-tat", action)
 
 
 def strategy_hard_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        return Action.DEFECTING if len(opponent_decisions) >= 3 and Action.DEFECTING in opponent_decisions[-3:] else Action.COOPERATING
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
+        if len(opponent_decisions) >= 3 and (Action.DEFECTING in opponent_decisions[-3:]):
+            return Action.DEFECTING
+        else:
+            return Action.COOPERATING
+
     return Strategy("hard-tit-for-tat", action)
 
 
 def strategy_soft_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
         if len(opponent_decisions) > 0 and opponent_decisions[-1] == Action.DEFECTING:
             local_state["next_decisions"] = [Action.DEFECTING]*4 + [Action.COOPERATING]*2
         next_decisions = local_state.get("next_decisions")
@@ -326,43 +370,58 @@ def strategy_soft_grudger() -> Strategy:
             local_state["next_decisions"] = next_decisions[1:]
             return next_decisions[0]
         return Action.COOPERATING
+
     return Strategy("soft-grudger", action)
 
 
 def strategy_hard_majority() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
+        if len(own_decisions) == 0:
+            return Action.COOPERATING
+
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        return Action.COOPERATING if cnt_coop > cnt_def else Action.DEFECTING
+        if cnt_coop > cnt_def:
+            return Action.COOPERATING
+        else:
+            return Action.DEFECTING
+
     return Strategy("hard-majority", action)
 
 
 def strategy_prober() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
         if len(own_decisions) == 0:
             local_state["startup_decisions"] = [Action.DEFECTING] + [Action.COOPERATING]*2
         startup_decisions = local_state.get("startup_decisions")
         if startup_decisions is not None and len(startup_decisions) > 0:
             local_state["startup_decisions"] = startup_decisions[1:]
             return startup_decisions[0]
-        if len(opponent_decisions) == 3 and opponent_decisions[-1] == opponent_decisions[-2] and opponent_decisions[-1] == Action.COOPERATING:
+
+        if len(opponent_decisions) == 3 and (opponent_decisions[-1] == opponent_decisions[-2]) and (opponent_decisions[-1] == Action.COOPERATING):
             return Action.DEFECTING
         else:
             return opponent_decisions[-1]
+
     return Strategy("prober", action)
 
 
 def strategy_handshake() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        # startup
         if len(own_decisions) == 0:
             local_state["startup_decisions"] = [Action.DEFECTING] + [Action.COOPERATING]
         startup_decisions = local_state.get("startup_decisions")
         if startup_decisions is not None and len(startup_decisions) > 0:
             local_state["startup_decisions"] = startup_decisions[1:]
             return startup_decisions[0]
-        if len(opponent_decisions) == 2 and opponent_decisions[0] == Action.DEFECTING and opponent_decisions[1] == Action.COOPERATING:
+
+        if len(opponent_decisions) == 2 and (opponent_decisions[0] == Action.DEFECTING) and (opponent_decisions[1] == Action.COOPERATING):
             return Action.COOPERATING
         else:
             return Action.DEFECTING
+
     return Strategy("handshake", action)
 
 
@@ -375,6 +434,7 @@ def strategy_user() -> Strategy:
             return Action.COOPERATING
         else:
             return Action.DEFECTING
+
     return Strategy("user", action)
 
 
