@@ -70,7 +70,7 @@ def strategy_hate_opponent() -> Strategy:
             print("Wrong config")
             return None
 
-    return Strategy("hate opponent", action)
+    return Strategy("hate-opponent", action)
 
 
 def has_defection(local_state, opponent_decisions):
@@ -108,7 +108,7 @@ def strategy_angry_grudger() -> Strategy:
         else:
             return Action.COOPERATING
 
-    return Strategy("angry grudger", action)
+    return Strategy("angry-grudger", action)
 
 
 def strategy_gandhi() -> Strategy:

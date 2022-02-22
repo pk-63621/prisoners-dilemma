@@ -1,0 +1,11 @@
+* random
+* hate-opponent
+* alternator
+* handshake
+* defector
+* prober
+* gandhi
+* tit-for-tat
+* prober
+* two-tits-for-tat
+* forgiving-tit-for-tat
