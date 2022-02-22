@@ -337,7 +337,14 @@ def strategy_two_tits_for_tat() -> Strategy:
         if len(own_decisions) == 0:
             return Action.COOPERATING
 
-        if len(own_decisions) > 0 and own_decisions[-1] == Action.DEFECTING:
+        if local_state.get("pending") != None:
+            local_state["pending"] = None
+            if opponent_decisions[-1] == Action.DEFECTING:
+                local_state["pending"] = 1
+            return Action.DEFECTING
+
+        if opponent_decisions[-1] == Action.DEFECTING:
+            local_state["pending"] = 1
             return Action.DEFECTING
         else:
             return opponent_decisions[-1]
@@ -355,7 +362,14 @@ def strategy_suspicious_two_tits_for_tat() -> Strategy:
         if len(opponent_decisions) == 1:
             return opponent_decisions[-1]
 
-        if own_decisions[-1] == Action.DEFECTING:
+        if local_state.get("pending") != None:
+            local_state["pending"] = None
+            if opponent_decisions[-1] == Action.DEFECTING:
+                local_state["pending"] = 1
+            return Action.DEFECTING
+
+        if opponent_decisions[-1] == Action.DEFECTING:
+            local_state["pending"] = 1
             return Action.DEFECTING
         else:
             return opponent_decisions[-1]
