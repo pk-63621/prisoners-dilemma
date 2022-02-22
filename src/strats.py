@@ -433,7 +433,11 @@ def strategy_prober() -> Strategy:
             local_state["startup_decisions"] = startup_decisions[1:]
             return startup_decisions[0]
 
+        if local_state.get("fix_state"):
+            return Action.DEFECTING
+
         if len(opponent_decisions) == 3 and (opponent_decisions[-1] == opponent_decisions[-2]) and (opponent_decisions[-1] == Action.COOPERATING):
+            local_state["fix_state"] = True
             return Action.DEFECTING
         else:
             return opponent_decisions[-1]
