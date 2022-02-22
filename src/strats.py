@@ -437,7 +437,7 @@ def strategy_handshake() -> Strategy:
             local_state["startup_decisions"] = startup_decisions[1:]
             return startup_decisions[0]
 
-        if len(opponent_decisions) == 2 and (opponent_decisions[0] == Action.DEFECTING) and (opponent_decisions[1] == Action.COOPERATING):
+        if len(opponent_decisions) >= 2 and (opponent_decisions[0] == Action.DEFECTING) and (opponent_decisions[1] == Action.COOPERATING):
             return Action.COOPERATING
         else:
             return Action.DEFECTING
