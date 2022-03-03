@@ -228,7 +228,7 @@ class PrisonersDilemmaTournament:
                 result = prisoner.get_result()
                 outcome.add_score(participant, result)
                 if logging.dump_trace:
-                    print(f"{participant.name: <{20}} {action_trace(prisoner.decisions)}")
+                    print(f"{participant.name: <{40}} {action_trace(prisoner.decisions)}")
                 if logging.verbose >= 2:
                     print(f"\t{participant.name: <{40}} {result}")
 
@@ -324,8 +324,8 @@ def main():
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('--quiet', '-q', action='store_true', default=False, help='Just print final result')
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
-    verbosity.add_argument('--dump-trace', '-d', action='store_true', default=False,
-                           help='Dump decisions of each participant for each round and iteration as a string')
+    parser.add_argument('--dump-trace', '-d', action='store_true', default=False,
+                        help='Dump decisions made by a participant (without factoring in noise) for each round and iteration as a string.')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
