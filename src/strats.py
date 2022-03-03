@@ -335,7 +335,7 @@ def strategy_two_tits_for_tat() -> Strategy:
         if len(own_decisions) == 0:
             return Action.COOPERATING
 
-        if local_state.get("pending") != None:
+        if local_state.get("pending") is not None:
             local_state["pending"] = None
             if opponent_decisions[-1] == Action.DEFECTING:
                 local_state["pending"] = 1
@@ -360,7 +360,7 @@ def strategy_suspicious_two_tits_for_tat() -> Strategy:
         if len(opponent_decisions) == 1:
             return opponent_decisions[-1]
 
-        if local_state.get("pending") != None:
+        if local_state.get("pending") is not None:
             local_state["pending"] = None
             if opponent_decisions[-1] == Action.DEFECTING:
                 local_state["pending"] = 1
