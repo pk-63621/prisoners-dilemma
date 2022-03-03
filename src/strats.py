@@ -463,11 +463,19 @@ def strategy_handshake() -> Strategy:
 
 def strategy_user() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
+        """
+        read from user:
+        * input starting with "C" is treated as cooperation
+        * last action is repeated if no input is provided
+        * otherwise defection is assumed
+        """
         if len(opponent_decisions) >= 1:
             print(f"Opponent's last move: {opponent_decisions[-1].value}")
         move = input("Your move: ")
         if move.lower().startswith("c"):
             return Action.COOPERATING
+        elif len(move) == 0 and len(own_decisions) >= 1:
+            return own_decisions[-1]
         else:
             return Action.DEFECTING
 
