@@ -89,7 +89,12 @@ def has_defection(local_state, opponent_decisions):
 
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation
+        defect if opponent defected at some point
+        otherwise keep cooperating
+        The trace of grudger has the shape: C*D*
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
 
@@ -99,6 +104,25 @@ def strategy_grudger() -> Strategy:
             return Action.COOPERATING
 
     return Strategy("grudger", action)
+
+
+# NOTE: pavlovish is same as grudger
+# def strategy_pavlovish() -> Strategy:
+#     def action(own_decisions, opponent_decisions, local_state):
+#         """
+#         start with cooperation
+#         defect if opponent defected and we didn't
+#         otherwise keep doing whatever we did last time
+#         """
+#         if len(own_decisions) == 0:
+#             return Action.COOPERATING
+#         assert len(opponent_decisions) >= 1
+#         if opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
+#             return Action.DEFECTING
+#         else:
+#             return own_decisions[-1]
+#
+#     return Strategy("pavlovish", action)
 
 
 def strategy_angry_grudger() -> Strategy:
@@ -239,13 +263,15 @@ def strategy_firm_but_fair() -> Strategy:
 
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation
+        switch strategy if opponent defected in last move
+        otherwise keep doing whatever we did last time
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
-
-        # switch strategy if opponent defected
-        # otherwise keep doing whatever we did last time
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
+        assert len(opponent_decisions) >= 1
+        if opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
         else:
             return own_decisions[-1]
@@ -255,13 +281,13 @@ def strategy_pavlov() -> Strategy:
 
 def strategy_suspicious_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        same as pavlov except it starts with defection
+        """
         if len(own_decisions) == 0:
             return Action.DEFECTING
-
-        # switch strategy if opponent defected
-        # otherwise keep doing whatever we did last time
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING:
+        assert len(opponent_decisions) >= 1
+        if opponent_decisions[-1] == Action.DEFECTING:
             return complement_action(own_decisions[-1])
         else:
             return own_decisions[-1]
@@ -269,70 +295,38 @@ def strategy_suspicious_pavlov() -> Strategy:
     return Strategy("suspicious-pavlov", action)
 
 
-def strategy_pavlovish() -> Strategy:
+def strategy_spooky_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation
+        switch strategy if opponent's action didn't match ours
+        otherwise keep doing whatever we did last time
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
-
-        # defect if opponent defected and we didn't
-        # otherwise keep doing whatever we did last time
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
-            return Action.DEFECTING
-        else:
-            return own_decisions[-1]
-
-    return Strategy("pavlovish", action)
-
-
-def strategy_suspicious_pavlovish() -> Strategy:
-    def action(own_decisions, opponent_decisions, local_state):
-        # startup
-        if len(own_decisions) == 0:
-            return Action.DEFECTING
-
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
-            return Action.DEFECTING
-        else:
-            return own_decisions[-1]
-
-    return Strategy("suspicious-pavlovish", action)
-
-
-def strategy_pavlov_spooky() -> Strategy:
-    def action(own_decisions, opponent_decisions, local_state):
-        # startup
-        if len(own_decisions) == 0:
-            return Action.COOPERATING
-
-        # switch strategy if opponent's action didn't match ours
-        # otherwise keep doing whatever we did last time
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
+        assert len(opponent_decisions) >= 1
+        if opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
+        else:
             return own_decisions[-1]
-        else: 
-            print("Wrong config")
-            return None
 
-    return Strategy("pavlov-spooky", action)
+    return Strategy("spooky-pavlov", action)
 
 
-def strategy_suspicious_pavlov_spooky() -> Strategy:
+def strategy_suspicious_spooky_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        same as spooky-pavlov except it starts with defection
+        """
         if len(own_decisions) == 0:
             return Action.DEFECTING
-
-        if len(opponent_decisions) >= 1 and opponent_decisions[-1] != own_decisions[-1]:
+        assert len(opponent_decisions) >= 1
+        if opponent_decisions[-1] != own_decisions[-1]:
             return complement_action(own_decisions[-1])
-        if len(own_decisions) > 0:
-            return own_decisions[-1]
         else:
-            print("Wrong config")
-            return None
+            return own_decisions[-1]
 
-    return Strategy("suspicious-pavlov-spooky", action)
+    return Strategy("suspicious-spooky-pavlov", action)
 
 
 def strategy_two_tits_for_tat() -> Strategy:
@@ -487,8 +481,7 @@ name2strategy = {
     "grudger": strategy_grudger(),
     "soft-grudger": strategy_soft_grudger(),
     "hard-majority":strategy_hard_majority(),
-    "suspicious-pavlovish": strategy_suspicious_pavlovish(),
-    "suspicious-pavlov-spooky": strategy_suspicious_pavlov_spooky(),
+    "suspicious-spooky-pavlov": strategy_suspicious_spooky_pavlov(),
     "suspicious-pavlov": strategy_suspicious_pavlov(),
     "suspicious-sophist": strategy_suspicious_sophist(),
     "suspicious-tit-for-tat": strategy_suspicious_tit_for_tat(),
@@ -502,8 +495,7 @@ name2strategy = {
     "firm-but-fair": strategy_firm_but_fair(),
     "sophist": strategy_sophist(),
     "pavlov": strategy_pavlov(),
-    "pavlov-spooky": strategy_pavlov_spooky(),
-    "pavlovish": strategy_pavlovish(),
+    "spooky-pavlov": strategy_spooky_pavlov(),
     "tit-for-tat": strategy_tit_for_tat(),
     "forgiving-tit-for-tat": strategy_forgiving_tit_for_tat(),
     "gandhi": strategy_gandhi(),
