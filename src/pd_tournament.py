@@ -305,62 +305,6 @@ class PrisonersDilemmaTournamentWithEvolution:
         return last_outcome
 
 
-def all_strategies_name():
-    return name2strategy.keys()
-
-
-def all_strategies():
-    return name2strategy.values()
-
-
-def all_strategies_mod(excluding: List[str] = []) -> List[Strategy]:
-    ret = []
-    for k,v in name2strategy.items():
-        if k in excluding:
-            continue
-        ret.append(v)
-    return ret
-
-
-def random_strategy() -> Strategy:
-    choice: Strategy = random.choice(list(all_strategies()))
-    return choice
-
-
-def get_strategies_by_name(sc: str, random_if_not_found=False) -> List[Strategy]:
-    """
-     sc is assumed to be of the form:
-      sc       ::= s | s*N
-      s        ::= STRATEGY | "all" | "all-"ls
-      ls       ::= STRATEGY | ls","STRATEGY
-
-      N in { positive-integers }
-      STRATEGY in { strategies }
-
-      if random_if_not_found is True then an invalid strategy is replaced by a randomly chosen strategy
-                                     otherwise silently ignored
-    """
-    def decode_into_strategy_and_count(sc):
-        ss = sc.split('*')
-        if len(ss) == 2 and ss[1].isdigit():
-            cnt = max(int(ss[1]), 1)
-            return ss[0], cnt
-        return sc, 1
-    s, cnt = decode_into_strategy_and_count(sc)
-    ret = []
-    if s in name2strategy:
-        ret = [name2strategy[s]]
-    elif s.startswith('all'):
-        excluding_strategies:List[str] = []
-        remaining_str: str = s[len('all'):]
-        if len(remaining_str) >= 1 and remaining_str[0] == '-':
-            excluding_strategies = remaining_str[1:].split(',')
-        ret = all_strategies_mod(excluding_strategies)
-    elif random_if_not_found:
-        ret = [random_strategy()]
-    return ret*cnt
-
-
 def str_to_argv(s: str) -> List[str]:
     return shlex.split(s)
 
