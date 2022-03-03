@@ -21,6 +21,13 @@ def unpack_tuple_if_singleton(a: Tuple[T,...]) -> Union[Tuple[T,...],T]:
     return a
 
 
+class Logging:
+    def __init__(self, verbose=0, quiet=False, dump_trace=False):
+        self.verbose = verbose
+        self.quiet = quiet
+        self.dump_trace = dump_trace
+
+
 class StrategyResults:
     def __init__(self):
         self.dict: DefaultDict[str,List[int]] = defaultdict(list)
@@ -186,11 +193,11 @@ class PrisonersDilemmaTournament:
         self.noise_error_prob = noise_error_prob
         self.rng_seed = rng_seed
 
-    def play_tournament(self, verbose=0, quiet=False) -> TournamentParticipantResults:
+    def play_tournament(self, logging: Logging) -> TournamentParticipantResults:
         # outcome accumulated across all rounds
         outcome = TournamentParticipantResults()
         rng_seed = self.rng_seed
-        if not quiet:
+        if not logging.quiet:
             print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
         for r, round_participants in enumerate(itertools.combinations(self.participants, self.participants_per_game)):
             r += 1
@@ -199,7 +206,7 @@ class PrisonersDilemmaTournament:
             if rng_seed is not None:
                 rng_seed = rng_seed+1
 
-            if verbose >= 3:
+            if logging.verbose >= 3:
                 print()
                 print(f"=== Tournament Round #{r} ===")
                 print()
@@ -209,21 +216,23 @@ class PrisonersDilemmaTournament:
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                if verbose >= 3:
+                if logging.verbose >= 3:
                     print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
                     print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
                     print()
                     pass
 
-            if verbose >= 2:
+            if logging.verbose >= 2:
                 print(f"Result for Round #{r}:")
             for prisoner,participant in zip(prisoners,round_participants):
                 result = prisoner.get_result()
                 outcome.add_score(participant, result)
-                if verbose >= 2:
+                if logging.dump_trace:
+                    print(f"{participant.name: <{20}} {action_trace(prisoner.decisions)}")
+                if logging.verbose >= 2:
                     print(f"\t{participant.name: <{40}} {result}")
 
-        if verbose >= 1:
+        if logging.verbose >= 1:
             outcome.print()
             strategy_results = participant_to_strategy_wise_results(outcome)
             strategy_results.print()
@@ -249,7 +258,7 @@ class PrisonersDilemmaTournamentWithEvolution:
         self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
         self.rounds_of_evolution = rounds_of_evolution
 
-    def play_tournament(self, participants, verbose=0, quiet=False) -> TournamentParticipantResults:
+    def play_tournament(self, participants, logging: Logging) -> TournamentParticipantResults:
         tournament = PrisonersDilemmaTournament(self.play_matrix, participants,
                                                 participants_per_game=self.participants_per_game,
                                                 iterations=self.iterations,
@@ -257,12 +266,12 @@ class PrisonersDilemmaTournamentWithEvolution:
                                                 rng_seed=self.rng_seed)
         if self.rng_seed is not None:
             self.rng_seed += 1
-        return tournament.play_tournament(verbose=verbose, quiet=quiet)
+        return tournament.play_tournament(logging)
 
     def eliminate_and_replicate(self,
                                 last_participants: List[TournamentParticipant],
                                 last_outcome: TournamentParticipantResults,
-                                generation: int, verbose=0) -> List[TournamentParticipant]:
+                                generation: int, logging: Logging) -> List[TournamentParticipant]:
         len_last_participants = len(last_participants)
         assert last_outcome is not None
         assert last_outcome.len() == len_last_participants
@@ -274,11 +283,11 @@ class PrisonersDilemmaTournamentWithEvolution:
         assert len(to_be_eliminated) == len(to_be_replicated)
         new_participants = [p for p in last_participants if p.name not in to_be_eliminated]
         new_participants.extend([p.replicate(generation) for p in last_participants if p.name in to_be_replicated])
-        if verbose >= 1:
+        if logging.verbose >= 1:
             print()
             print(f"*** Eliminating bottom {nr} and replicating top {nr}")
             print()
-        if verbose >= 2:
+        if logging.verbose >= 2:
             print()
             print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
             print(f"*** Replicated: {', '.join(to_be_replicated)}")
@@ -286,12 +295,12 @@ class PrisonersDilemmaTournamentWithEvolution:
         assert len(new_participants) == len_last_participants
         return new_participants
 
-    def play_tournament_with_evolution(self, verbose=0, quiet=False) -> Optional[TournamentParticipantResults]:
+    def play_tournament_with_evolution(self, logging: Logging) -> Optional[TournamentParticipantResults]:
         last_outcome = None
         last_participants = self.orig_participants
         for i in range(self.rounds_of_evolution):
-            last_outcome = self.play_tournament(last_participants, verbose, quiet)
-            last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, verbose)
+            last_outcome = self.play_tournament(last_participants, logging)
+            last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, logging)
         assert last_outcome is not None
         return last_outcome
 
@@ -369,8 +378,10 @@ def read_config(config):
 def main():
     parser = argparse.ArgumentParser()
     verbosity = parser.add_mutually_exclusive_group()
-    verbosity.add_argument('--quiet', '-q', action='store_true', help='Just print final result')
+    verbosity.add_argument('--quiet', '-q', action='store_true', default=False, help='Just print final result')
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
+    verbosity.add_argument('--dump-trace', '-d', action='store_true', default=False,
+                           help='Dump decisions of each participant for each round and iteration as a string')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
@@ -388,8 +399,7 @@ def main():
             print(f"Using args from config: {config_str}")
         # override args
         args = parser.parse_args(str_to_argv(config_str))
-    quiet = args.quiet
-    verbose = args.verbose
+    logging = Logging(verbose=args.verbose, quiet=args.quiet, dump_trace=args.dump_trace)
     iterations = args.iterations
     rounds = args.rounds
     noise = args.error_prob
@@ -417,11 +427,11 @@ def main():
                                                          noise_error_prob=noise,
                                                          rng_seed=rng_seed,
                                                          rounds_of_evolution=rounds)
-    final_result = tournament.play_tournament_with_evolution(verbose, quiet=quiet)
+    final_result = tournament.play_tournament_with_evolution(logging)
 
     strategy_results = participant_to_strategy_wise_results(final_result)
     best_strats, best_score = strategy_results.get_best_strategies_and_score()
-    if not quiet:
+    if not logging.quiet:
         strategy_results.print()
     if len(best_strats) > 1:
         print(f"Best strategies are {', '.join(best_strats)}")

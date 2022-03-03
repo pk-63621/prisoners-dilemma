@@ -17,6 +17,10 @@ def complement_action(a: Action) -> Action:
         return Action.DEFECTING
 
 
+def action_trace(al: List[Action]) -> str:
+    return "".join(map(lambda a: 'C' if a == Action.COOPERATING else 'D', al))
+
+
 class Strategy:
     """
     prototype for action:
