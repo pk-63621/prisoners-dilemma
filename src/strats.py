@@ -40,6 +40,14 @@ class Strategy:
 
 # strategies -- add to name2strategy if adding new strategy
 
+
+def strategy_gandhi() -> Strategy:
+    def action(own_decisions, opponent_decisions, local_state):
+        return Action.COOPERATING
+
+    return Strategy("gandhi", action)
+
+
 def strategy_defector() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         return Action.DEFECTING
@@ -49,30 +57,28 @@ def strategy_defector() -> Strategy:
 
 def strategy_alternator() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation;
+        alternate for each subsequent turn
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
-
-        if len(own_decisions) > 0:
-            return complement_action(own_decisions[-1])
-        else:
-            print("Wrong config")
-            return None
+        assert len(own_decisions) >= 1
+        return complement_action(own_decisions[-1])
 
     return Strategy("alternator", action)
 
 
 def strategy_hate_opponent() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with defection;
+        do opposite of opponent's action for each subsequent turn
+        """
         if len(own_decisions) == 0:
             return Action.DEFECTING
-
-        if len(opponent_decisions) > 0:
-            return complement_action(opponent_decisions[-1])
-        else:
-            print("Wrong config")
-            return None
+        assert len(opponent_decisions) >= 1
+        return complement_action(opponent_decisions[-1])
 
     return Strategy("hate-opponent", action)
 
@@ -90,7 +96,7 @@ def has_defection(local_state, opponent_decisions):
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
-        start with cooperation
+        start with cooperation;
         defect if opponent defected at some point
         otherwise keep cooperating
         The trace of grudger has the shape: C*D*
@@ -106,28 +112,30 @@ def strategy_grudger() -> Strategy:
     return Strategy("grudger", action)
 
 
-# NOTE: pavlovish is same as grudger
-# def strategy_pavlovish() -> Strategy:
+# alternate implementation of grudger -- does not require maintaining explicit state
+# def strategy_grudger() -> Strategy:
 #     def action(own_decisions, opponent_decisions, local_state):
 #         """
 #         start with cooperation
-#         defect if opponent defected and we didn't
+#         defect if opponent defected
 #         otherwise keep doing whatever we did last time
 #         """
 #         if len(own_decisions) == 0:
 #             return Action.COOPERATING
 #         assert len(opponent_decisions) >= 1
-#         if opponent_decisions[-1] == Action.DEFECTING and own_decisions[-1] == Action.COOPERATING:
+#         if opponent_decisions[-1] == Action.DEFECTING:
 #             return Action.DEFECTING
 #         else:
 #             return own_decisions[-1]
 #
-#     return Strategy("pavlovish", action)
+#     return Strategy("grudger", action)
 
 
 def strategy_angry_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        same as grudger except it starts with defection
+        """
         if len(opponent_decisions) == 0:
             return Action.DEFECTING
 
@@ -137,13 +145,6 @@ def strategy_angry_grudger() -> Strategy:
             return Action.COOPERATING
 
     return Strategy("angry-grudger", action)
-
-
-def strategy_gandhi() -> Strategy:
-    def action(own_decisions, opponent_decisions, local_state):
-        return Action.COOPERATING
-
-    return Strategy("gandhi", action)
 
 
 def strategy_random() -> Strategy:
@@ -173,7 +174,11 @@ def get_coop_and_defect_count(local_state, opponent_decisions):
 
 def strategy_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation;
+        if opponent's # of defections exceed cooperation then defect
+        otherwise cooperate
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
 
@@ -188,12 +193,14 @@ def strategy_sophist() -> Strategy:
 
 def strategy_suspicious_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        same as sophist except it starts with defection
+        """
         if len(opponent_decisions) == 0:
             return Action.DEFECTING
 
         cnt_coop, cnt_def = get_coop_and_defect_count(local_state, opponent_decisions)
-        if cnt_def >= cnt_coop:
+        if cnt_def > cnt_coop:
             return Action.DEFECTING
         else:
             return Action.COOPERATING
@@ -203,37 +210,38 @@ def strategy_suspicious_sophist() -> Strategy:
 
 def strategy_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation;
+        repeat opponent's last action for each subsequent turn
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
-
-        if len(opponent_decisions) >= 1:
-            return opponent_decisions[-1]
-        else:
-            print("Wrong config")
-            return None
+        assert len(opponent_decisions) >= 1
+        return opponent_decisions[-1]
 
     return Strategy("tit-for-tat", action)
 
 
 def strategy_suspicious_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        same as tit-for-tat except it starts with defection
+        """
         if len(own_decisions) == 0:
             return Action.DEFECTING
-
-        if len(opponent_decisions) >= 1:
-            return opponent_decisions[-1]
-        else:
-            print("Wrong config")
-            return None
+        assert len(opponent_decisions) >= 1
+        return opponent_decisions[-1]
 
     return Strategy("suspicious-tit-for-tat", action)
 
 
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation;
+        repeat opponent's last action for each subsequent turn if opponent's last two actions were same
+        otherwise cooperate
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
 
@@ -247,10 +255,15 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
 
 def strategy_firm_but_fair() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
-        # startup
+        """
+        start with cooperation;
+        cooperate if opponent's last action matched own action
+        otherwise defect if opponent defected more times than cooperated
+        else cooperate
+        """
         if len(own_decisions) == 0:
             return Action.COOPERATING
-
+        assert len(opponent_decisions) >= 1
         if opponent_decisions[-1] == own_decisions[-1]:
             return Action.COOPERATING
         elif has_defection(local_state, opponent_decisions):
