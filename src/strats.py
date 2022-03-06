@@ -41,6 +41,12 @@ class Strategy:
 # strategies -- add to name2strategy if adding new strategy
 
 
+"""
+params: none of params are used
+works: always cooperate
+weakness: defector
+strength: will do good with cooperating strats
+"""
 def strategy_gandhi() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         return Action.COOPERATING
@@ -48,6 +54,12 @@ def strategy_gandhi() -> Strategy:
     return Strategy("gandhi", action)
 
 
+"""
+params: none of params are used
+works: always defect
+weakness: bad in cooperating environment
+strength: gandhi
+"""
 def strategy_defector() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         return Action.DEFECTING
@@ -55,6 +67,12 @@ def strategy_defector() -> Strategy:
     return Strategy("defector", action)
 
 
+"""
+params: own_decisions
+works: start cooperating, opposite decision than the last one
+weakness: unknown
+strength: unknown
+"""
 def strategy_alternator() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -69,6 +87,12 @@ def strategy_alternator() -> Strategy:
     return Strategy("alternator", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: start defecting, opposite decision than the last opponent decision 
+weakness: ?
+strength: gandhi
+"""
 def strategy_hate_opponent() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -93,6 +117,12 @@ def has_defection(local_state, opponent_decisions):
     return has_def
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start cooperating, defect always when opponent defects
+weakness: loose the cooperation of other strats when noise, could take advantage of more cooperating strats
+strength: doing good in noise scenarios somehow?
+"""
 def strategy_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -131,6 +161,12 @@ def strategy_grudger() -> Strategy:
 #     return Strategy("grudger", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: start defecting grudger
+weakness: Noise
+strength: very similar to defector behaviour
+"""
 def strategy_angry_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -147,6 +183,12 @@ def strategy_angry_grudger() -> Strategy:
     return Strategy("angry-grudger", action)
 
 
+"""
+params: None
+works: random choice between cooperating and defectomg
+weakness: unknown
+strength: unknown
+"""
 def strategy_random() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         return random.choice(list(Action))
@@ -172,6 +214,12 @@ def get_coop_and_defect_count(local_state, opponent_decisions):
     return cnt_coop, cnt_def
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: starts cooperating, then check no of defection vs cooperations (egalitarian)
+weakness: ?
+strength: Doing good in evolution and noise
+"""
 def strategy_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -191,6 +239,12 @@ def strategy_sophist() -> Strategy:
     return Strategy("sophist", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start defecting sophist
+weakness: ?
+strength: ?
+"""
 def strategy_suspicious_sophist() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -208,6 +262,12 @@ def strategy_suspicious_sophist() -> Strategy:
     return Strategy("suspicious-sophist", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: start cooperating, always do what opponent does
+weakness: ?
+strength: Overall it is one of the better strats
+"""
 def strategy_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -222,6 +282,12 @@ def strategy_tit_for_tat() -> Strategy:
     return Strategy("tit-for-tat", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: start defecting and tit for tat
+weakness: ?
+strength: ?
+"""
 def strategy_suspicious_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -235,6 +301,12 @@ def strategy_suspicious_tit_for_tat() -> Strategy:
     return Strategy("suspicious-tit-for-tat", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_forgiving_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -253,6 +325,12 @@ def strategy_forgiving_tit_for_tat() -> Strategy:
     return Strategy("forgiving-tit-for-tat", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_firm_but_fair() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -274,6 +352,12 @@ def strategy_firm_but_fair() -> Strategy:
     return Strategy("firm-but-fair", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -292,6 +376,12 @@ def strategy_pavlov() -> Strategy:
     return Strategy("pavlov", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_suspicious_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -308,6 +398,12 @@ def strategy_suspicious_pavlov() -> Strategy:
     return Strategy("suspicious-pavlov", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_spooky_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -326,6 +422,12 @@ def strategy_spooky_pavlov() -> Strategy:
     return Strategy("spooky-pavlov", action)
 
 
+"""
+params:
+works:
+weakness:
+strength:
+"""
 def strategy_suspicious_spooky_pavlov() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -342,6 +444,12 @@ def strategy_suspicious_spooky_pavlov() -> Strategy:
     return Strategy("suspicious-spooky-pavlov", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start cooperationg, one defection results in 2 defections
+weakness: ?
+strength: ?
+"""
 def strategy_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -363,6 +471,12 @@ def strategy_two_tits_for_tat() -> Strategy:
     return Strategy("two-tits-for-tat", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start defecting, same as two tit for tat
+weakness: ?
+strength: ?
+"""
 def strategy_suspicious_two_tits_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -388,6 +502,12 @@ def strategy_suspicious_two_tits_for_tat() -> Strategy:
     return Strategy("suspicious-two-tits-for-tat", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: start cooperating, last 3 decisions has defection then defect else cooperate
+weakness: punishes defection
+strength: ?
+"""
 def strategy_hard_tit_for_tat() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -402,6 +522,12 @@ def strategy_hard_tit_for_tat() -> Strategy:
     return Strategy("hard-tit-for-tat", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start cooperating, opponent defect -- define next 6 moves with 4 defection
+weakness: ?
+strength: does well in evolution and noise
+"""
 def strategy_soft_grudger() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -419,6 +545,12 @@ def strategy_soft_grudger() -> Strategy:
     return Strategy("soft-grudger", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: start cooperating but later only cooperate when opponent cooperated more than defection
+weakness: ?
+strength: ?
+"""
 def strategy_hard_majority() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -434,6 +566,12 @@ def strategy_hard_majority() -> Strategy:
     return Strategy("hard-majority", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: starting with defecting, cooperating*2, then observe if opponent last 2 decisions are cooperation match then defect else tit for tat
+weakness: ?
+strength: take advantage of more cooperation
+"""
 def strategy_prober() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -456,6 +594,12 @@ def strategy_prober() -> Strategy:
     return Strategy("prober", action)
 
 
+"""
+params: own_decisions, opponent_decisions, local_state
+works: handshake, defecting and cooperating in first 2 decisions, if opponent does some cooperate else defect
+weakness: need to analyse
+strength: very similar to grudger
+"""
 def strategy_handshake() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         # startup
@@ -474,6 +618,12 @@ def strategy_handshake() -> Strategy:
     return Strategy("handshake", action)
 
 
+"""
+params: own_decisions, opponent_decisions
+works: user selects the decision
+weakness: none
+strength: none
+"""
 def strategy_user() -> Strategy:
     def action(own_decisions, opponent_decisions, local_state):
         """
@@ -540,7 +690,10 @@ def all_strategies_mod(excluding: List[str] = []) -> List[Strategy]:
         ret.append(v)
     return ret
 
-
+"""
+params: None
+implementation: choose a random strategy from all available strats
+"""
 def random_strategy() -> Strategy:
     choice: Strategy = random.choice(list(all_strategies()))
     return choice
