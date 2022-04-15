@@ -371,7 +371,7 @@ def main():
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('--rng-seed', '-s', default=None, type=int, help='Seed to be passed to RNG')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
-    parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['all'],
+    parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['all-user'],
                         help=f"Strategies for prisoners.  Use multiplier '*N' for specifying multiple copies (e.g. all*4)."
                              f"Possible values are: all, all-[S1,S2,...], {', '.join(all_strategies_name())}")
     args = parser.parse_args()
