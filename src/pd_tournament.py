@@ -399,11 +399,12 @@ def main():
         return
 
     play_matrix = {
-                    (Action.COOPERATING, Action.COOPERATING): (2, 2),
-                    (Action.COOPERATING, Action.DEFECTING):   (0, 3),
-                    (Action.DEFECTING,   Action.COOPERATING): (3, 0),
+                    (Action.COOPERATING, Action.COOPERATING): (3, 3),
+                    (Action.COOPERATING, Action.DEFECTING):   (0, 5),
+                    (Action.DEFECTING,   Action.COOPERATING): (5, 0),
                     (Action.DEFECTING,   Action.DEFECTING):   (1, 1),
                   }
+    assert play_matrix_is_well_formed(play_matrix)
 
     participants = [TournamentParticipant(f"p{i}.{s.name}", s) for i,s in enumerate(strategies)]
     tournament = PrisonersDilemmaTournamentWithEvolution(play_matrix, participants,
