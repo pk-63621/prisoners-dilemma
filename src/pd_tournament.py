@@ -90,6 +90,46 @@ class Prisoner:
     def get_decision(self) -> Action:
         return self.strategy.action(self.decisions, self.opponent_decisions, self.strategy_local_state)
 
+def play_matrix_is_well_formed(play_matrix: Dict) -> bool:
+    """
+    Terminology:
+    * Reward (R)     : both cooperate
+    * Temptation (T) : player defect, opponent cooperate
+    * Punishment (P) : both defect
+    * Sucker (S)     : player cooperate, opponent defect (opposite of T)
+
+    player's matrix:
+     R S
+     T P
+
+    opponent's matrix:
+     R T
+     S P
+
+    Requirements for prisoner dilemma matrix:
+    * T > R > P > S
+    * 2R > T+S
+
+    """
+
+    Rp, Ro = play_matrix[(Action.COOPERATING, Action.COOPERATING)]
+    Sp, To = play_matrix[(Action.COOPERATING, Action.DEFECTING)]
+    Tp, So = play_matrix[(Action.DEFECTING, Action.COOPERATING)]
+    Pp, Po = play_matrix[(Action.DEFECTING, Action.DEFECTING)]
+
+    if Rp != Ro or Sp != So or Tp != To or Pp != Po:
+        # print("player and opponent matrices are not synced with each other")
+        return False
+
+    if not (Tp > Rp and Rp > Pp and Pp > Sp):
+        # print("ordering requirement not met")
+        return False
+
+    if not (2*Rp > Tp + Sp):
+        # print("reward, temptation inequality not satisfied")
+        return False
+
+    return True
 
 class PrisonersDilemma:
     def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=0.0, rng_seed=None):
