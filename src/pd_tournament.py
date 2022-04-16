@@ -4,6 +4,7 @@ import abc
 import shlex
 import argparse
 import random
+import sys
 import itertools
 import math
 
@@ -23,10 +24,26 @@ def unpack_tuple_if_singleton(a: Tuple[T,...]) -> Union[Tuple[T,...],T]:
 
 
 class Logging:
-    def __init__(self, verbose=0, quiet=False, dump_trace=False):
+    def __init__(self, file=sys.stdout, verbose=0, quiet=False, dump_trace=False):
+        self.file = file
         self.verbose = verbose
         self.quiet = quiet
         self.dump_trace = dump_trace
+
+    def logQ(self, s: str):
+        if not self.quiet:
+            self.log(s)
+
+    def logV(self, lvl: int, s: str):
+        if lvl <= self.verbose:
+            self.log(s)
+
+    def logT(self, s: str):
+        if self.dump_trace:
+            self.log(s)
+
+    def log(self, s: str):
+        print(s, file=self.file)
 
 
 class StrategyResults:
@@ -56,14 +73,13 @@ class StrategyResults:
                 best_strats.append(strat)
         return best_strats, best_score
 
-    def print(self):
-        print()
-        print("Strategy wise result")
-        print("--------------------")
+    def __str__(self):
+        s =  "Strategy wise result\n"
+        s += "--------------------\n"
         for strat,sl in self.get_sorted_items():
-            print("Strategy: {0:30} Count: {1:<10} Score: {2:10}".format(strat, len(sl), sum(sl)))
-        print("--------------------")
-        print()
+            s += "Strategy: {0:30} Count: {1:<10} Score: {2:10}\n".format(strat, len(sl), sum(sl))
+        s += "--------------------\n"
+        return s
 
 
 class Prisoner:
@@ -205,14 +221,13 @@ class TournamentParticipantResults:
             self.cache_invalidated = False
         return self.sorted_items
 
-    def print(self):
-        print()
-        print("Participant results")
-        print("-------------------")
+    def __str__(self):
+        s =  "Participant results\n"
+        s += "-------------------\n"
         for part,score in self.get_sorted_items():
-            print("\t{0:40} {1:10}".format(part.name, score))
-        print("------------------")
-        print()
+            s += "\t{0:40} {1:10}\n".format(part.name, score)
+        s += "------------------\n"
+        return s
 
 
 def participant_to_strategy_wise_results(participant_results: TournamentParticipantResults) -> StrategyResults:
@@ -243,45 +258,28 @@ class PrisonersDilemmaTournament:
         # outcome accumulated across all rounds
         outcome = TournamentParticipantResults()
         rng_seed = self.rng_seed
-        if not logging.quiet:
-            print(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
-        for r, round_participants in enumerate(itertools.combinations(self.participants, self.participants_per_game)):
-            r += 1
+        logging.logQ(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
+        for round_participants in itertools.combinations(self.participants, self.participants_per_game):
             prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
             game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob, rng_seed)
             if rng_seed is not None:
                 rng_seed = rng_seed+1
 
-            if logging.verbose >= 3:
-                print()
-                print(f"=== Tournament Round #{r} ===")
-                print()
-                print(f"Participants: {', '.join(p.name for p in prisoners)}")
-                print()
+            logging.logV(3, f"\n=== Tournament Round ===\nParticipants: {', '.join(p.name for p in prisoners)}\n")
 
             for i in range(self.iterations):
                 decisions, results = game.play_next_iteration()
                 s = f"Iteration #{i+1: <3}:"
-                if logging.verbose >= 3:
-                    print(f"{s} Actions: {', '.join(d.value for d in decisions)}")
-                    print(f"{' '*len(s)} Result: {', '.join(str(r) for r in results)}")
-                    print()
-                    pass
+                logging.logV(3, f"{s} Actions: {', '.join(d.value for d in decisions)}\n{' '*len(s)} Result: {', '.join(str(r) for r in results)}\n")
 
-            if logging.verbose >= 2:
-                print(f"Result for Round #{r}:")
+            logging.logV(2, "Result for Round:")
             for prisoner,participant in zip(prisoners,round_participants):
                 result = prisoner.get_result()
                 outcome.add_score(participant, result)
-                if logging.dump_trace:
-                    print(f"{participant.name: <{40}} {action_trace(prisoner.decisions)}")
-                if logging.verbose >= 2:
-                    print(f"\t{participant.name: <{40}} {result}")
+                logging.logT(f"{participant.name: <{40}} {action_trace(prisoner.decisions)}")
+                logging.logV(2, "\t{participant.name: <{40}} {result}")
 
-        if logging.verbose >= 1:
-            outcome.print()
-            strategy_results = participant_to_strategy_wise_results(outcome)
-            strategy_results.print()
+        logging.logV(1, f"{outcome}\n{participant_to_strategy_wise_results(outcome)}")
         return outcome
 
 
@@ -331,15 +329,8 @@ class PrisonersDilemmaTournamentWithEvolutionBase(metaclass=abc.ABCMeta):
         new_participants.extend([p.replicate(generation) for p in last_participants if p.name in to_be_replicated])
         assert len(new_participants) == len_last_participants
 
-        if logging.verbose >= 1:
-            print()
-            print(f"*** Eliminating {len(to_be_eliminated)} and replicating {len(to_be_replicated)}")
-            print()
-        if logging.verbose >= 2:
-            print()
-            print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
-            print(f"*** Replicated: {', '.join(to_be_replicated)}")
-            print()
+        logging.logV(1, f"\n*** Eliminating {len(to_be_eliminated)} and replicating {len(to_be_replicated)}\n")
+        logging.logV(2, f"*** Eliminated: {', '.join(to_be_eliminated)}\n*** Replicated: {', '.join(to_be_replicated)}\n")
         return new_participants
 
     def play_tournament_with_evolution(self, logging: Logging) -> Optional[TournamentParticipantResults]:
@@ -479,8 +470,7 @@ def main():
 
     strategy_results = participant_to_strategy_wise_results(final_result)
     best_strats, best_score = strategy_results.get_best_strategies_and_score()
-    if not logging.quiet:
-        strategy_results.print()
+    logging.logQ(f"{strategy_results}")
     if len(best_strats) > 1:
         print(f"Best strategies are {', '.join(best_strats)}")
     else:
