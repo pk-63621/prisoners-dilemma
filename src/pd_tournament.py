@@ -90,6 +90,7 @@ class Prisoner:
     def get_decision(self) -> Action:
         return self.strategy.action(self.decisions, self.opponent_decisions, self.strategy_local_state)
 
+
 def play_matrix_is_well_formed(play_matrix: Dict) -> bool:
     """
     Terminology:
@@ -118,18 +119,19 @@ def play_matrix_is_well_formed(play_matrix: Dict) -> bool:
     Pp, Po = play_matrix[(Action.DEFECTING, Action.DEFECTING)]
 
     if Rp != Ro or Sp != So or Tp != To or Pp != Po:
-        # print("player and opponent matrices are not synced with each other")
+        print("player and opponent matrices are not synced with each other")
         return False
 
     if not (Tp > Rp and Rp > Pp and Pp > Sp):
-        # print("ordering requirement not met")
+        print("ordering requirement not met")
         return False
 
     if not (2*Rp > Tp + Sp):
-        # print("reward, temptation inequality not satisfied")
+        print("reward, temptation inequality not satisfied")
         return False
 
     return True
+
 
 class PrisonersDilemma:
     def __init__(self, matrix: Dict, prisoners: List[Prisoner], noise=0.0, rng_seed=None):
@@ -359,6 +361,22 @@ def read_config(config):
     return ret
 
 
+def create_play_matrix(r: int, t: int, s: int, p: int) -> Dict:
+    return {
+               (Action.COOPERATING, Action.COOPERATING): (r, r),
+               (Action.COOPERATING, Action.DEFECTING):   (s, t),
+               (Action.DEFECTING,   Action.COOPERATING): (t, s),
+               (Action.DEFECTING,   Action.DEFECTING):   (p, p),
+           }
+
+
+def parse_play_matrix(s: str) -> Dict:
+    d = { p.split('=')[0]: int(p.split('=')[1]) for p in s.split(',') }
+    play_matrix = create_play_matrix(r=d['r'], t=d['t'], s=d['s'], p=d['p'])
+    assert play_matrix_is_well_formed(play_matrix)
+    return play_matrix
+
+
 def main():
     parser = argparse.ArgumentParser()
     verbosity = parser.add_mutually_exclusive_group()
@@ -370,6 +388,9 @@ def main():
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('--rng-seed', '-s', default=None, type=int, help='Seed to be passed to RNG')
+    parser.add_argument('--play-matrix', '-p', default='r=3,t=5,s=0,p=1', type=str, help='Utility matrix for the game.  Expected format: '
+                                                                                         'r=<REWARD>,t=<TEMPTATION>,s=<SUCKER>,p=<PUNISHMENT>.  '
+                                                                                         'Example: r=3,t=5,s=0,p=1')
     parser.add_argument('--config', '-c', default=None, type=argparse.FileType('r'), help='Configuration file.  Other options are disregarded.')
     parser.add_argument('strategies', metavar='STRATEGY', type=str, nargs='*', default=['all-user'],
                         help=f"Strategies for prisoners.  Use multiplier '*N' for specifying multiple copies (e.g. all*4)."
@@ -388,6 +409,7 @@ def main():
     rounds = args.rounds
     noise = args.error_prob
     rng_seed = args.rng_seed
+    play_matrix = parse_play_matrix(args.play_matrix)
     strategies_name = args.strategies
 
     strategies = []
@@ -397,14 +419,6 @@ def main():
     if len(strategies) <= 1:
         # exit silently if enough strategies not provided
         return
-
-    play_matrix = {
-                    (Action.COOPERATING, Action.COOPERATING): (3, 3),
-                    (Action.COOPERATING, Action.DEFECTING):   (0, 5),
-                    (Action.DEFECTING,   Action.COOPERATING): (5, 0),
-                    (Action.DEFECTING,   Action.DEFECTING):   (1, 1),
-                  }
-    assert play_matrix_is_well_formed(play_matrix)
 
     participants = [TournamentParticipant(f"p{i}.{s.name}", s) for i,s in enumerate(strategies)]
     tournament = PrisonersDilemmaTournamentWithEvolution(play_matrix, participants,
