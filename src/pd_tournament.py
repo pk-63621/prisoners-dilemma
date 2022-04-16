@@ -10,6 +10,7 @@ import math
 
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from pathos.multiprocessing import ProcessPool
 
 from strats import *
 
@@ -254,32 +255,46 @@ class PrisonersDilemmaTournament:
         self.noise_error_prob = noise_error_prob
         self.rng_seed = rng_seed
 
+    def use_mp(self):
+        global mp_iters_threshold
+        return self.iterations > mp_iters_threshold
+
+    #def play_game(self, round_participants_idx: List[int]) -> List[Tuple[int,int]]:
+    def play_game(self, round_participants_idx: List[int]):
+        round_participants = [self.participants[i] for i in round_participants_idx]
+        prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
+        game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob, self.rng_seed)
+        #if rng_seed is not None:
+        #    rng_seed = rng_seed+1
+        #logging.logV(3, f"\n=== Tournament Round ===\nParticipants: {', '.join(p.name for p in prisoners)}\n")
+        for i in range(self.iterations):
+            decisions, results = game.play_next_iteration()
+            #s = f"Iteration #{i+1: <3}:"
+            #logging.logV(3, f"{s} Actions: {', '.join(d.value for d in decisions)}\n{' '*len(s)} Result: {', '.join(str(r) for r in results)}\n")
+        #logging.logV(2, "Result for Round:")
+        ret = []
+        for prisoner,pidx in zip(prisoners,round_participants_idx):
+            result = prisoner.get_result()
+            ret.append((pidx, result))
+            #participant = self.participants[pidx]
+            #logging.logT(f"{participant.name: <{40}} {action_trace(prisoner.decisions)}")
+            #logging.logV(2, "\t{participant.name: <{40}} {result}")
+        return ret
+
     def play_tournament(self, logging: Logging) -> TournamentParticipantResults:
         # outcome accumulated across all rounds
         outcome = TournamentParticipantResults()
-        rng_seed = self.rng_seed
         logging.logQ(f"Tournament participants[{len(self.participants)}]: {', '.join(s.name for s in self.participants)}")
-        for round_participants in itertools.combinations(self.participants, self.participants_per_game):
-            prisoners = [Prisoner(f"prisoner{i+1}.aka.{part.name}", part.strategy) for i,part in enumerate(round_participants)]
-            game = PrisonersDilemma(self.play_matrix, prisoners, self.noise_error_prob, rng_seed)
-            if rng_seed is not None:
-                rng_seed = rng_seed+1
-
-            logging.logV(3, f"\n=== Tournament Round ===\nParticipants: {', '.join(p.name for p in prisoners)}\n")
-
-            for i in range(self.iterations):
-                decisions, results = game.play_next_iteration()
-                s = f"Iteration #{i+1: <3}:"
-                logging.logV(3, f"{s} Actions: {', '.join(d.value for d in decisions)}\n{' '*len(s)} Result: {', '.join(str(r) for r in results)}\n")
-
-            logging.logV(2, "Result for Round:")
-            for prisoner,participant in zip(prisoners,round_participants):
-                result = prisoner.get_result()
-                outcome.add_score(participant, result)
-                logging.logT(f"{participant.name: <{40}} {action_trace(prisoner.decisions)}")
-                logging.logV(2, "\t{participant.name: <{40}} {result}")
-
-        logging.logV(1, f"{outcome}\n{participant_to_strategy_wise_results(outcome)}")
+        games = itertools.combinations(range(len(self.participants)), self.participants_per_game)
+        if self.use_mp():
+            round_results = ProcessPool().uimap(self.play_game, games)
+        else:
+            round_results = map(self.play_game, games)
+        for res in round_results:
+            for pidx,score in res:
+                part = self.participants[pidx]
+                outcome.add_score(part, score)
+        #logging.logV(1, f"{outcome}\n{participant_to_strategy_wise_results(outcome)}")
         return outcome
 
 
@@ -411,6 +426,8 @@ def parse_play_matrix(s: str) -> Dict:
     assert play_matrix_is_well_formed(play_matrix)
     return play_matrix
 
+
+mp_iters_threshold = 700 # use multiprocessing if # of iterations exceed threshold
 
 def main():
     parser = argparse.ArgumentParser()
