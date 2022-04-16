@@ -11,7 +11,7 @@ Implement Prisoner's Dilemma for a population including pairs, reproduction and 
 
 #### Rule set
 
-* Reproduction - probalistic chance of each gender child, 2 male cannot reproduce
+* Reproduction - probalistic chance of each gender child, 3 male cannot reproduce, incest not frowned upon.
 * Death - Low score or low fitness could kill
-* Fitness - Decrease fitness of loners, age could impact it
+* Fitness - Decrease fitness of loners, age could impact it too
 * If a strat is last, male sacrifice for woman, so from pair male will die -- killing that strat with time since even after winning the female cannot reproduce, no cheating allowed. Maybe multiple pairs can be used for reproduction here.
