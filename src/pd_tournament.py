@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import abc
 import shlex
 import argparse
 import random
@@ -7,7 +8,7 @@ import itertools
 import math
 
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
 from strats import *
 
@@ -189,6 +190,9 @@ class TournamentParticipantResults:
         self.dict[name] += score
         self.cache_invalidated = True
 
+    def get_score(self, name: TournamentParticipant) -> int:
+        return self.dict[name]
+
     def items(self):
         return self.dict.items()
 
@@ -281,15 +285,13 @@ class PrisonersDilemmaTournament:
         return outcome
 
 
-class PrisonersDilemmaTournamentWithEvolution:
+class PrisonersDilemmaTournamentWithEvolutionBase(metaclass=abc.ABCMeta):
     def __init__(self, play_matrix, participants: List[TournamentParticipant],
                  participants_per_game=2,
                  iterations=10,
                  noise_error_prob=0.0,
                  rng_seed: Optional[int]=None,
-                 fraction_eliminated_after_each_tournament=0.1,
                  rounds_of_evolution=2):
-        assert fraction_eliminated_after_each_tournament > 0.0
         assert rounds_of_evolution >= 1
         self.play_matrix = play_matrix
         self.orig_participants = participants
@@ -297,7 +299,6 @@ class PrisonersDilemmaTournamentWithEvolution:
         self.noise_error_prob = noise_error_prob
         self.participants_per_game = participants_per_game
         self.rng_seed = rng_seed
-        self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
         self.rounds_of_evolution = rounds_of_evolution
 
     def play_tournament(self, participants, logging: Logging) -> TournamentParticipantResults:
@@ -310,6 +311,11 @@ class PrisonersDilemmaTournamentWithEvolution:
             self.rng_seed += 1
         return tournament.play_tournament(logging)
 
+    @abc.abstractmethod
+    def get_replication_and_elimination_candidates(self, participants: List[TournamentParticipant],
+                                                   outcome: TournamentParticipantResults) -> Tuple[Set[str],Set[str]]:
+        pass
+
     def eliminate_and_replicate(self,
                                 last_participants: List[TournamentParticipant],
                                 last_outcome: TournamentParticipantResults,
@@ -317,24 +323,23 @@ class PrisonersDilemmaTournamentWithEvolution:
         len_last_participants = len(last_participants)
         assert last_outcome is not None
         assert last_outcome.len() == len_last_participants
-        last_outcome_sorted = last_outcome.get_sorted_items()
-        nr = math.ceil(len_last_participants*self.fraction_eliminated_after_each_tournament)
-        assert nr != 0
-        to_be_eliminated = set([p.name for p,_ in last_outcome_sorted[:nr]])
-        to_be_replicated = set([p.name for p,_ in last_outcome_sorted[-nr:]])
+
+        to_be_replicated, to_be_eliminated = self.get_replication_and_elimination_candidates(last_participants, last_outcome)
         assert len(to_be_eliminated) == len(to_be_replicated)
+
         new_participants = [p for p in last_participants if p.name not in to_be_eliminated]
         new_participants.extend([p.replicate(generation) for p in last_participants if p.name in to_be_replicated])
+        assert len(new_participants) == len_last_participants
+
         if logging.verbose >= 1:
             print()
-            print(f"*** Eliminating bottom {nr} and replicating top {nr}")
+            print(f"*** Eliminating {len(to_be_eliminated)} and replicating {len(to_be_replicated)}")
             print()
         if logging.verbose >= 2:
             print()
             print(f"*** Eliminated: {', '.join(to_be_eliminated)}")
             print(f"*** Replicated: {', '.join(to_be_replicated)}")
             print()
-        assert len(new_participants) == len_last_participants
         return new_participants
 
     def play_tournament_with_evolution(self, logging: Logging) -> Optional[TournamentParticipantResults]:
@@ -345,6 +350,45 @@ class PrisonersDilemmaTournamentWithEvolution:
             last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, logging)
         assert last_outcome is not None
         return last_outcome
+
+
+class PrisonersDilemmaTournamentWithEvolutionTopReplicated(PrisonersDilemmaTournamentWithEvolutionBase):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant],
+                 participants_per_game=2,
+                 iterations=10,
+                 noise_error_prob=0.0,
+                 rng_seed: Optional[int]=None,
+                 rounds_of_evolution=2,
+                 fraction_eliminated_after_each_tournament=0.1):
+        assert fraction_eliminated_after_each_tournament > 0.0
+        super().__init__(play_matrix, participants, participants_per_game, iterations, noise_error_prob, rng_seed, rounds_of_evolution)
+        self.fraction_eliminated_after_each_tournament = fraction_eliminated_after_each_tournament
+
+    def get_replication_and_elimination_candidates(self, participants: List[TournamentParticipant],
+                                                   outcome: TournamentParticipantResults) -> Tuple[Set[str],Set[str]]:
+        outcome_sorted = outcome.get_sorted_items()
+        nr = math.ceil(len(participants)*self.fraction_eliminated_after_each_tournament)
+        assert nr != 0
+        to_be_replicated = set([p.name for p,_ in outcome_sorted[-nr:]])
+        to_be_eliminated = set([p.name for p,_ in outcome_sorted[:nr]])
+        return to_be_replicated, to_be_eliminated
+
+
+class MoranProcess(PrisonersDilemmaTournamentWithEvolutionBase):
+    def __init__(self, play_matrix, participants: List[TournamentParticipant],
+                 participants_per_game=2,
+                 iterations=10,
+                 noise_error_prob=0.0,
+                 rng_seed: Optional[int]=None,
+                 rounds_of_evolution=2):
+        super().__init__(play_matrix, participants, participants_per_game, iterations, noise_error_prob, rng_seed, rounds_of_evolution)
+
+    def get_replication_and_elimination_candidates(self, participants: List[TournamentParticipant],
+                                                   outcome: TournamentParticipantResults) -> Tuple[Set[str],Set[str]]:
+        participants_weights = [outcome.get_score(part) for part in participants]
+        to_be_replicated = random.choices(participants, participants_weights)
+        to_be_eliminated = random.choice(participants)
+        return set([to_be_replicated[0].name]), set([to_be_eliminated.name])
 
 
 def str_to_argv(s: str) -> List[str]:
@@ -421,11 +465,16 @@ def main():
         return
 
     participants = [TournamentParticipant(f"p{i}.{s.name}", s) for i,s in enumerate(strategies)]
-    tournament = PrisonersDilemmaTournamentWithEvolution(play_matrix, participants,
-                                                         iterations=iterations,
-                                                         noise_error_prob=noise,
-                                                         rng_seed=rng_seed,
-                                                         rounds_of_evolution=rounds)
+    #tournament = PrisonersDilemmaTournamentWithEvolutionTopReplicated(play_matrix, participants,
+    #                                                                  iterations=iterations,
+    #                                                                  noise_error_prob=noise,
+    #                                                                  rng_seed=rng_seed,
+    #                                                                  rounds_of_evolution=rounds)
+    tournament = MoranProcess(play_matrix, participants,
+                              iterations=iterations,
+                              noise_error_prob=noise,
+                              rng_seed=rng_seed,
+                              rounds_of_evolution=rounds)
     final_result = tournament.play_tournament_with_evolution(logging)
 
     strategy_results = participant_to_strategy_wise_results(final_result)
