@@ -250,8 +250,8 @@ class PrisonersDilemmaTournament:
         self.rng_seed = rng_seed
 
     def use_mp(self):
-        global mp_iters_threshold
-        return self.iterations > mp_iters_threshold
+        global mp_iters_threshold, run_parallel
+        return run_parallel and self.iterations > mp_iters_threshold
 
     #def play_game(self, round_participants_idx: List[int]) -> List[Tuple[int,int]]:
     def play_game(self, round_participants_idx: List[int]):
@@ -423,15 +423,18 @@ def parse_play_matrix(s: str) -> Dict:
     return play_matrix
 
 
-mp_iters_threshold = 700 # use multiprocessing if # of iterations exceed threshold
+run_parallel = False
+mp_iters_threshold = 1000 # use multiprocessing if # of iterations exceed threshold
 
 def main():
+    global run_parallel
     parser = argparse.ArgumentParser()
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('--quiet', '-q', action='store_true', default=False, help='Just print final result')
     verbosity.add_argument('--verbose', '-v', action='count', default=0, help='Show verbose output of each game')
     parser.add_argument('--dump-trace', '-d', action='store_true', default=False,
                         help='Dump decisions made by a participant (without factoring in noise) for each round and iteration as a string.')
+    parser.add_argument('--parallel', '-j', action='store_true', default=False, help='Use multiprocessing during tournament rounds')
     parser.add_argument('--iterations', '-i', default=30, type=int, help='Number of iterations of game')
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
@@ -459,6 +462,7 @@ def main():
     rng_seed = args.rng_seed
     play_matrix = parse_play_matrix(args.play_matrix)
     strategies_name = args.strategies
+    run_parallel = args.parallel
 
     strategies = []
     for s in strategies_name:
