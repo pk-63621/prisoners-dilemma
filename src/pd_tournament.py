@@ -18,12 +18,6 @@ from strats import *
 T = TypeVar('T')
 
 
-def unpack_tuple_if_singleton(a: Tuple[T,...]) -> Union[Tuple[T,...],T]:
-    if len(a) == 1:
-        return a[0]
-    return a
-
-
 class Logging:
     def __init__(self, file=sys.stdout, verbose=0, quiet=False, dump_trace=False):
         self.file = file
@@ -161,24 +155,23 @@ class PrisonersDilemma:
         self.noise_probability = noise
         self.rng = random.Random(rng_seed)
 
-    def get_result(self, decisions):
-        return self.play_matrix[decisions]
-
     def noise_occurred(self):
+        if self.noise_probability == 0.0:
+            return False
         return self.rng.uniform(0, 1) < self.noise_probability
 
     def play_next_iteration(self) -> Tuple[Tuple[Action, ...], List[int]]:
         decisions             = tuple(p.get_decision() for p in self.prisoners)
         decisions_after_noise = tuple(complement_action(d) if self.noise_occurred() else d for i,d in enumerate(decisions))
-        results = self.get_result(decisions_after_noise)
+        results = self.play_matrix[decisions_after_noise]
 
         for i in range(len(self.prisoners)):
             self.prisoners[i].add_play(decisions[i], results[i])
             opponents_decisions = decisions_after_noise[:i] + decisions_after_noise[i+1:]
             opponents_results   = results[:i] + results[i+1:]
             # HACK for 2 players only game, unpack the tuples
-            unpacked_opponents_decisions = unpack_tuple_if_singleton(opponents_decisions)
-            unpacked_opponents_results   = unpack_tuple_if_singleton(opponents_results)
+            unpacked_opponents_decisions = opponents_decisions[0]
+            unpacked_opponents_results   = opponents_results[0]
             self.prisoners[i].opponent_history(unpacked_opponents_decisions, unpacked_opponents_results)
 
         # TODO indicate noise as well?
@@ -353,6 +346,8 @@ class PrisonersDilemmaTournamentWithEvolutionBase(metaclass=abc.ABCMeta):
         last_participants = self.orig_participants
         for i in range(self.rounds_of_evolution):
             last_outcome = self.play_tournament(last_participants, logging)
+            if i == self.rounds_of_evolution-1:
+                continue
             last_participants = self.eliminate_and_replicate(last_participants, last_outcome, i+1, logging)
         assert last_outcome is not None
         return last_outcome
