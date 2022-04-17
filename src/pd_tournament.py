@@ -439,6 +439,7 @@ def main():
     parser.add_argument('--rounds', '-r', default=1, type=int, help='Rounds of evolution')
     parser.add_argument('--error-prob', '-ep', default=0.0, type=float, help='Probability of error due to noise (Due to noise decision gets flipped)')
     parser.add_argument('--rng-seed', '-s', default=None, type=int, help='Seed to be passed to RNG')
+    parser.add_argument('--moran', '-m', action='store_true', default=False, help='Use Moran process for modelling evolution.')
     parser.add_argument('--play-matrix', '-p', default='r=3,t=5,s=0,p=1', type=str, help='Utility matrix for the game.  Expected format: '
                                                                                          'r=<REWARD>,t=<TEMPTATION>,s=<SUCKER>,p=<PUNISHMENT>.  '
                                                                                          'Example: r=3,t=5,s=0,p=1')
@@ -463,6 +464,7 @@ def main():
     play_matrix = parse_play_matrix(args.play_matrix)
     strategies_name = args.strategies
     run_parallel = args.parallel
+    use_moran = args.moran
 
     strategies = []
     for s in strategies_name:
@@ -473,16 +475,18 @@ def main():
         return
 
     participants = [TournamentParticipant(f"p{i}.{s.name}", s) for i,s in enumerate(strategies)]
-    #tournament = PrisonersDilemmaTournamentWithEvolutionTopReplicated(play_matrix, participants,
-    #                                                                  iterations=iterations,
-    #                                                                  noise_error_prob=noise,
-    #                                                                  rng_seed=rng_seed,
-    #                                                                  rounds_of_evolution=rounds)
-    tournament = MoranProcess(play_matrix, participants,
-                              iterations=iterations,
-                              noise_error_prob=noise,
-                              rng_seed=rng_seed,
-                              rounds_of_evolution=rounds)
+    if use_moran:
+        tournament = MoranProcess(play_matrix, participants,
+                                  iterations=iterations,
+                                  noise_error_prob=noise,
+                                  rng_seed=rng_seed,
+                                  rounds_of_evolution=rounds)
+    else:
+        tournament = PrisonersDilemmaTournamentWithEvolutionTopReplicated(play_matrix, participants,
+                                                                          iterations=iterations,
+                                                                          noise_error_prob=noise,
+                                                                          rng_seed=rng_seed,
+                                                                          rounds_of_evolution=rounds)
     final_result = tournament.play_tournament_with_evolution(logging)
 
     strategy_results = participant_to_strategy_wise_results(final_result)
