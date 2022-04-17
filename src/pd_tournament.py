@@ -7,6 +7,7 @@ import random
 import sys
 import itertools
 import math
+import time
 
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple, TypeVar, Union
@@ -491,4 +492,7 @@ def main():
 
 
 if __name__ == '__main__':
+    #tic = time.perf_counter()
     main()
+    #toc = time.perf_counter()
+    #print(f"Time taken by main: {toc-tic:0.4f}s")
